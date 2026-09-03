@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team &amp; Roles — Coffee Shop Ops</title>
+<style>
+  :root{
+    --coffee:#3B2417;
+    --coffee-deep:#241209;
+    --cream:#FBF6EE;
+    --cream-2:#F0E4D3;
+    --caramel:#B5793A;
+    --caramel-light:#D9A868;
+    --line:#E3D3BB;
+    --ink-soft:#6B5B47;
+    --alert:#8A3324;
+    --alert-bg:#F3DED5;
+    --ok:#3D6B4F;
+    --ok-bg:#E1ECE3;
+
+    --role-management:#6B3FA0;
+    --role-management-bg:#EEE4F6;
+    --role-area:#1F6F5C;
+    --role-area-bg:#DEEEE8;
+    --role-manager:#B5793A;
+    --role-manager-bg:#F3E7D3;
+    --role-staff:#2E5C8A;
+    --role-staff-bg:#DFE7F0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--coffee);font-family:Georgia,'Times New Roman',serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:960px;margin:0 auto;padding:0 0 60px;}
+
+  header{background:var(--coffee);color:var(--cream);padding:26px 24px 32px;position:relative;overflow:hidden;}
+  header::after{content:"";position:absolute;right:-40px;top:-50px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,var(--caramel-light) 0%, transparent 70%);opacity:.28;}
+  .eyebrow{font-size:12px;letter-spacing:.1em;color:var(--caramel-light);font-weight:700;margin-bottom:6px;}
+  h1{font-size:28px;margin:0 0 6px;line-height:1.15;}
+  header p{margin:0;color:var(--cream-2);font-size:14px;max-width:520px;}
+
+  /* ===== LOGIN / SETUP ===== */
+  #loginOverlay,#setupOverlay,#checkingOverlay{position:fixed;inset:0;background:var(--coffee);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  #checkingOverlay{color:var(--cream-2);font-size:14px;}
+  .auth-card{background:var(--cream);border-radius:16px;padding:32px 26px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.3);}
+  .auth-card h2{font-size:21px;margin:0 0 4px;text-align:center;}
+  .auth-card p.sub{font-size:13px;color:var(--ink-soft);margin:0 0 20px;text-align:center;line-height:1.5;}
+  .auth-card label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
+  .auth-card input,.auth-card select{width:100%;border:1.5px solid var(--line);background:var(--cream-2);border-radius:10px;padding:11px 12px;font-size:14.5px;font-family:Georgia,serif;color:var(--coffee);margin-bottom:14px;outline:none;}
+  .auth-card input:focus,.auth-card select:focus{border-color:var(--caramel);}
+  .auth-btn{width:100%;background:var(--coffee);color:var(--cream);border:none;border-radius:10px;padding:13px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:Georgia,serif;}
+  .auth-btn:hover{background:var(--coffee-deep);}
+  .auth-error{display:none;background:var(--alert-bg);color:var(--alert);border:1px solid #D9B9B4;border-radius:8px;padding:9px 12px;font-size:12.5px;margin-bottom:14px;}
+  .auth-error.show{display:block;}
+  .setup-note{background:var(--role-management-bg);color:var(--role-management);border:1px solid #DCC7EE;border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:16px;line-height:1.5;}
+
+  #app{display:none;}
+  .session-bar{display:flex;align-items:center;justify-content:space-between;background:var(--coffee-deep);color:var(--cream-2);padding:9px 16px;font-size:12.5px;flex-wrap:wrap;gap:8px;}
+  .session-bar button{background:transparent;border:1px solid var(--cream-2);color:var(--cream-2);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:Georgia,serif;}
+  .session-bar button:hover{background:var(--cream-2);color:var(--coffee-deep);}
+  .role-chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+
+  /* ===== NAV ===== */
+  .nav-row{display:flex;gap:8px;margin:-18px 16px 16px;position:relative;z-index:1;flex-wrap:wrap;}
+  .nav-btn{flex:1;min-width:120px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;font-size:13.5px;font-weight:700;color:var(--ink-soft);box-shadow:0 6px 16px rgba(59,36,23,.06);font-family:Georgia,serif;}
+  .nav-btn.active{background:var(--coffee);color:var(--cream);border-color:var(--coffee);}
+
+  .section{padding:0 16px;}
+  .section-head{display:flex;justify-content:space-between;align-items:center;margin:4px 0 14px;flex-wrap:wrap;gap:10px;}
+  .section-head h2{font-size:18px;margin:0;}
+  .add-btn{background:var(--caramel);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:Georgia,serif;}
+  .add-btn:hover{opacity:.9;}
+
+  .role-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .role-tab{background:#fff;border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink-soft);}
+  .role-tab.active{background:var(--coffee);color:var(--cream);border-color:var(--coffee);}
+
+  .user-cards{display:flex;flex-direction:column;gap:12px;}
+  .user-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 6px 18px rgba(59,36,23,.06);}
+  .user-card.inactive{opacity:.55;}
+  .uc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+  .uc-name{font-size:16px;font-weight:700;margin:0;}
+  .uc-meta{font-size:13px;color:var(--ink-soft);margin-bottom:10px;line-height:1.6;}
+  .uc-meta strong{color:var(--coffee);}
+  .uc-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+  .uc-actions button{border:none;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:Georgia,serif;}
+  .btn-edit{background:var(--coffee);color:var(--cream);}
+  .btn-edit:hover{background:var(--coffee-deep);}
+  .btn-toggle{background:var(--cream-2);color:var(--ink-soft);border:1px solid var(--line) !important;}
+  .btn-toggle:hover{border-color:var(--caramel) !important;}
+  .btn-delete{background:transparent;color:var(--alert);border:1.5px solid var(--alert) !important;}
+  .btn-delete:hover{background:var(--alert-bg);}
+
+  .empty{text-align:center;padding:50px 20px;color:var(--ink-soft);font-size:14px;}
+  .loading{text-align:center;padding:50px 20px;color:var(--ink-soft);font-size:14px;}
+
+  /* ===== MODAL ===== */
+  #userModalOverlay,#taskModalOverlay,#taskDetailModalOverlay{position:fixed;inset:0;background:rgba(36,18,9,.55);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:20px;overflow-y:auto;}
+  #userModalOverlay.show,#taskModalOverlay.show,#taskDetailModalOverlay.show{display:flex;}
+  .modal{background:var(--cream);border-radius:16px;max-width:460px;width:100%;margin:20px auto;box-shadow:0 20px 50px rgba(0,0,0,.35);overflow:hidden;}
+  .modal-head{background:var(--coffee);color:var(--cream);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;}
+  .modal-head h3{margin:0;font-size:16px;}
+  .modal-head button{background:transparent;border:1px solid var(--cream-2);color:var(--cream-2);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:Georgia,serif;}
+  .modal-body{padding:18px 20px 6px;max-height:70vh;overflow-y:auto;}
+  .modal-body label{display:block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;}
+  .modal-body input,.modal-body select{width:100%;border:1.5px solid var(--line);background:var(--cream-2);border-radius:10px;padding:11px 12px;font-size:14.5px;font-family:Georgia,serif;color:var(--coffee);margin-bottom:14px;outline:none;}
+  .modal-body input:focus,.modal-body select:focus{border-color:var(--caramel);}
+  .modal-hint{font-size:12px;color:var(--ink-soft);margin:-8px 0 14px;}
+  .modal-foot{padding:14px 20px 20px;}
+  .modal-foot button{width:100%;background:var(--coffee);color:var(--cream);border:none;border-radius:12px;padding:14px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:Georgia,serif;}
+  .modal-foot button:hover{background:var(--coffee-deep);}
+  .modal-foot button:disabled{opacity:.6;cursor:not-allowed;}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--coffee);color:var(--cream);padding:13px 20px;border-radius:10px;font-size:13.5px;font-weight:700;box-shadow:0 12px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:all .25s;z-index:400;max-width:90%;text-align:center;}
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+  .toast.err{background:var(--alert);}
+
+  .profile-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;margin:0 16px;}
+  .profile-card h3{margin:0 0 14px;font-size:18px;}
+  .profile-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px;}
+  .profile-row:last-child{border-bottom:none;}
+  .profile-row span:first-child{color:var(--ink-soft);}
+  .profile-row span:last-child{font-weight:700;}
+
+  /* ===== TASKS ===== */
+  .task-subtabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .task-subtab{background:#fff;border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink-soft);}
+  .task-subtab.active{background:var(--coffee);color:var(--cream);border-color:var(--coffee);}
+  .task-filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .task-filter{background:var(--cream-2);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;color:var(--ink-soft);}
+  .task-filter.active{background:var(--caramel);color:#fff;border-color:var(--caramel);}
+
+  .task-cards{display:flex;flex-direction:column;gap:12px;}
+  .task-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 6px 18px rgba(59,36,23,.06);border-left:4px solid var(--caramel);}
+  .task-card.status-completed{border-left-color:var(--ok);}
+  .task-card.status-overdue{border-left-color:var(--alert);}
+  .tc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
+  .tc-title{font-size:16px;font-weight:700;margin:0;}
+  .tc-desc{font-size:13.5px;color:var(--ink-soft);margin:4px 0 10px;line-height:1.5;}
+  .tc-meta{font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;line-height:1.7;}
+  .tc-meta strong{color:var(--coffee);}
+  .status-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+  .status-pill.status-pending{background:var(--role-manager-bg);color:var(--role-manager);}
+  .status-pill.status-completed{background:var(--ok-bg);color:var(--ok);}
+  .status-pill.status-overdue{background:var(--alert-bg);color:var(--alert);}
+
+  .req-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .req-badge{display:inline-flex;align-items:center;gap:4px;background:var(--cream-2);border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:11.5px;font-weight:700;color:var(--ink-soft);}
+  .req-badge.met{background:var(--ok-bg);border-color:#BFD9C6;color:var(--ok);}
+
+  .tc-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+  .tc-actions button{border:none;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:Georgia,serif;}
+  .btn-complete{background:var(--ok);color:#fff;}
+  .btn-complete:hover{opacity:.9;}
+  .btn-view{background:var(--coffee);color:var(--cream);}
+  .btn-view:hover{background:var(--coffee-deep);}
+
+  .submission-box{background:var(--cream-2);border:1px dashed var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;font-size:13px;line-height:1.7;}
+  .submission-box a{color:var(--caramel);font-weight:700;text-decoration:none;}
+  .submission-box a:hover{text-decoration:underline;}
+  .submission-box img{max-width:100%;border-radius:8px;margin-top:6px;display:block;}
+
+  .req-check-row{display:flex;align-items:center;gap:10px;background:var(--cream-2);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:10px;font-size:13.5px;font-weight:700;color:var(--coffee);cursor:pointer;}
+  .req-check-row input{width:18px;height:18px;accent-color:var(--caramel);margin:0;}
+  .req-optional-tag{font-weight:400;font-size:11.5px;color:var(--ink-soft);}
+  .upload-progress{font-size:12px;color:var(--caramel);margin:-6px 0 12px;}
+  .fab-note{font-size:12px;color:var(--ink-soft);margin:-8px 0 14px;line-height:1.5;}
+</style>
+</head>
+<body>
+
+<!-- ===================== CHECKING (bootstrap) ===================== -->
+<div id="checkingOverlay">Loading…</div>
+
+<!-- ===================== FIRST-TIME SETUP (creates the first Management account) ===================== -->
+<div id="setupOverlay" style="display:none;">
+  <div class="auth-card">
+    <h2>Welcome — First-Time Setup</h2>
+    <p class="sub">No Management account exists yet. Create the first one to get started.</p>
+    <div class="setup-note">This account will have full control: create every other role, and manage the whole hierarchy.</div>
+    <div class="auth-error" id="setupError">Please fill all fields.</div>
+    <form id="setupForm">
+      <label>Your Name</label>
+      <input type="text" id="setupName" required>
+      <label>Username</label>
+      <input type="text" id="setupUser" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      <label>Email <span style="text-transform:none;font-weight:400;">(notifications will be sent here)</span></label>
+      <input type="email" id="setupEmail" placeholder="name@example.com" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      <label>Password</label>
+      <input type="password" id="setupPass" required>
+      <button type="submit" class="auth-btn">Create Management Account</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="loginOverlay" style="display:none;">
+  <div class="auth-card">
+    <h2>Team &amp; Roles</h2>
+    <p class="sub">Sign in to your account</p>
+    <div class="auth-error" id="loginError">Incorrect username or password.</div>
+    <form id="loginForm">
+      <label>Username</label>
+      <input type="text" id="loginUser" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      <label>Password</label>
+      <input type="password" id="loginPass" required>
+      <button type="submit" class="auth-btn">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MAIN APP ===================== -->
+<div id="app">
+  <div class="session-bar">
+    <span>Logged in as: <strong id="sessionName">—</strong> <span class="role-chip" id="sessionRoleChip"></span></span>
+    <button type="button" id="logoutBtn">Log Out</button>
+  </div>
+
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">Coffee Shop Ops</div>
+      <h1>Team &amp; Role Manager</h1>
+      <p>Create accounts, assign roles, and manage the reporting chain — Management → Area Manager → Manager → Staff.</p>
+    </header>
+
+    <div class="nav-row" id="navRow">
+      <button type="button" class="nav-btn active" data-nav="team">👥 My Team</button>
+      <button type="button" class="nav-btn" data-nav="tasks">✅ Tasks</button>
+      <button type="button" class="nav-btn" data-nav="profile">🙍 My Profile</button>
+    </div>
+
+    <!-- ===== TEAM / USERS SECTION ===== -->
+    <div class="section" id="teamSection">
+      <div class="section-head">
+        <h2>Team Members</h2>
+        <button type="button" class="add-btn" id="openAddUserBtn">＋ Add User</button>
+      </div>
+      <div class="role-tabs" id="roleTabs">
+        <div class="role-tab active" data-role="all">All</div>
+        <div class="role-tab" data-role="management">Management</div>
+        <div class="role-tab" data-role="area_manager">Area Manager</div>
+        <div class="role-tab" data-role="manager">Manager</div>
+        <div class="role-tab" data-role="staff">Staff</div>
+      </div>
+      <div class="user-cards" id="userCards"><div class="loading">Loading team…</div></div>
+    </div>
+
+    <!-- ===== TASKS SECTION ===== -->
+    <div class="section" id="tasksSection" style="display:none;">
+      <div class="section-head">
+        <h2>Tasks</h2>
+        <button type="button" class="add-btn" id="openAddTaskBtn" style="display:none;">＋ Assign Task</button>
+      </div>
+      <div class="task-subtabs" id="taskSubtabs">
+        <div class="task-subtab active" data-subtab="assignedToMe">Assigned To Me</div>
+        <div class="task-subtab" data-subtab="assignedByMe" style="display:none;">Assigned By Me</div>
+      </div>
+      <div class="task-filters" id="taskFilters">
+        <div class="task-filter active" data-filter="all">All</div>
+        <div class="task-filter" data-filter="pending">Pending</div>
+        <div class="task-filter" data-filter="completed">Completed</div>
+      </div>
+      <div class="task-cards" id="taskCards"><div class="loading">Loading tasks…</div></div>
+    </div>
+
+    <!-- ===== MY PROFILE SECTION ===== -->
+    <div class="section" id="profileSection" style="display:none;">
+      <div class="profile-card">
+        <h3 id="profileName">—</h3>
+        <div class="profile-row"><span>Role</span><span id="profileRole">—</span></div>
+        <div class="profile-row"><span>Username</span><span id="profileUsername">—</span></div>
+        <div class="profile-row"><span>Email</span><span id="profileEmail">—</span></div>
+        <div class="profile-row"><span>Reports To</span><span id="profileReportsTo">—</span></div>
+        <div class="profile-row"><span>Area / Branch</span><span id="profileArea">—</span></div>
+        <div class="profile-row"><span>Status</span><span id="profileStatus">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ADD / EDIT USER MODAL ===================== -->
+<div id="userModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="userModalTitle">Add User</h3>
+      <button type="button" id="closeUserModalBtn">Close</button>
+    </div>
+    <div class="modal-body">
+      <label>Full Name</label>
+      <input type="text" id="fName" required>
+      <label>Username</label>
+      <input type="text" id="fUsername" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      <label>Email <span style="text-transform:none;font-weight:400;">(notifications will be sent here)</span></label>
+      <input type="email" id="fEmail" placeholder="name@example.com" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      <label id="fPasswordLabel">Password</label>
+      <input type="text" id="fPassword">
+      <div class="modal-hint" id="fPasswordHint">Leave blank when editing to keep the current password.</div>
+      <label>Role</label>
+      <select id="fRole"></select>
+      <label id="fReportsToLabel">Reports To</label>
+      <select id="fReportsTo"></select>
+      <label>Area / Branch <span style="text-transform:none;font-weight:400;">(optional)</span></label>
+      <input type="text" id="fArea" placeholder="e.g. Downtown Branch">
+    </div>
+    <div class="modal-foot">
+      <button type="button" id="saveUserBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CREATE TASK MODAL ===================== -->
+<div id="taskModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Assign New Task</h3>
+      <button type="button" id="closeTaskModalBtn">Close</button>
+    </div>
+    <div class="modal-body">
+      <label>Task Title</label>
+      <input type="text" id="tTitle" placeholder="e.g. Restock napkins &amp; cups" required>
+      <label>Description <span style="text-transform:none;font-weight:400;">(optional)</span></label>
+      <input type="text" id="tDesc" placeholder="Any extra detail...">
+      <label>Assign To</label>
+      <select id="tAssignee"></select>
+      <label>Due Date <span style="text-transform:none;font-weight:400;">(optional)</span></label>
+      <input type="date" id="tDueDate">
+      <label>What's required to mark this complete?</label>
+      <div class="fab-note">Choose at least one. Staff will need to submit these before the task counts as done.</div>
+      <label class="req-check-row"><input type="checkbox" id="tReqCheck" checked> Simple check-off (no proof needed)</label>
+      <label class="req-check-row"><input type="checkbox" id="tReqPhoto"> 📷 Photo link required</label>
+      <label class="req-check-row"><input type="checkbox" id="tReqVideo"> 🎥 Video link required</label>
+      <label class="req-check-row"><input type="checkbox" id="tReqPdf"> 📄 PDF attachment required</label>
+    </div>
+    <div class="modal-foot">
+      <button type="button" id="saveTaskBtn">Assign Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TASK DETAIL / COMPLETE MODAL ===================== -->
+<div id="taskDetailModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="taskDetailTitle">Task</h3>
+      <button type="button" id="closeTaskDetailModalBtn">Close</button>
+    </div>
+    <div class="modal-body" id="taskDetailBody"></div>
+    <div class="modal-foot" id="taskDetailFoot" style="display:none;">
+      <button type="button" id="submitTaskBtn">Mark Complete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp, updateDoc, deleteDoc, doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* =========================================================================
+   SETUP INSTRUCTIONS (read this before using):
+   1. Go to https://console.firebase.google.com → Create a NEW project
+      (separate from any other project you already have).
+   2. In that project: Build → Firestore Database → Create database
+      (start in "test mode" while setting up, then lock it down later —
+      see the security note near the bottom of this file).
+   3. Project settings (gear icon) → General → scroll to "Your apps" →
+      click the web icon (</>) → register an app → copy the firebaseConfig
+      object it gives you → paste the values below, replacing the
+      placeholders.
+   ========================================================================= */
+const CONFIG = {
+  FIREBASE_CONFIG: {
+    apiKey: "AIzaSyCKjYMGi_br_p1BurpKBjracOBtc47uOUM",
+    authDomain: "operation-daily-tasks.firebaseapp.com",
+    projectId: "operation-daily-tasks",
+    storageBucket: "operation-daily-tasks.firebasestorage.app",
+    messagingSenderId: "531594158100",
+    appId: "1:531594158100:web:99d2a7205c30cc51bcc701"
+  },
+  USERS_COLLECTION: "opsUsers",
+  TASKS_COLLECTION: "opsTasks"
+};
+
+const firebaseApp = initializeApp(CONFIG.FIREBASE_CONFIG);
+const db = getFirestore(firebaseApp);
+/* NOTE: Photo proof is a pasted link (like the video field) so full quality
+   is preserved — nothing gets uploaded or compressed. PDF proof is still
+   stored as base64 text directly inside the Firestore document (no Firebase
+   Storage / Blaze plan needed), capped at MAX_PDF_BYTES to stay under
+   Firestore's ~1MB per-document limit. */
+
+const ROLE_LABELS = { management: 'Management', area_manager: 'Area Manager', manager: 'Manager', staff: 'Staff' };
+const ROLE_ORDER = ['management', 'area_manager', 'manager', 'staff'];
+const PARENT_ROLE = { area_manager: 'management', manager: 'area_manager', staff: 'manager' };
+
+function roleClass(role){
+  return { management: 'management', area_manager: 'area', manager: 'manager', staff: 'staff' }[role] || 'staff';
+}
+function roleChipHtml(role){
+  const c = roleClass(role);
+  return `<span class="role-chip" style="background:var(--role-${c}-bg);color:var(--role-${c});">${escapeHtml(ROLE_LABELS[role] || role)}</span>`;
+}
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function showToast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(()=>{ t.className = 'toast'; }, 3000);
+}
+
+let allUsers = [];       // every user doc, loaded once logged in (needed to resolve names/hierarchy)
+let currentUser = null;  // the logged-in user's own doc + id
+
+/* ---------------------------------------------------------------------
+   BOOTSTRAP: check if any Management account exists yet.
+   If not, show first-time setup instead of the login screen.
+--------------------------------------------------------------------- */
+async function bootstrap(){
+  try{
+    const snap = await getDocs(collection(db, CONFIG.USERS_COLLECTION));
+    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('checkingOverlay').style.display = 'none';
+    const hasManagement = allUsers.some(u => u.role === 'management');
+    if(!hasManagement){
+      document.getElementById('setupOverlay').style.display = 'flex';
+    } else {
+      document.getElementById('loginOverlay').style.display = 'flex';
+    }
+  } catch(err){
+    console.error(err);
+    document.getElementById('checkingOverlay').textContent =
+      'Could not connect to Firebase. Check your CONFIG.FIREBASE_CONFIG values and internet connection.';
+  }
+}
+bootstrap();
+
+/* ---------------------------------------------------------------------
+   FIRST-TIME SETUP FORM
+--------------------------------------------------------------------- */
+document.getElementById('setupForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const name = document.getElementById('setupName').value.trim();
+  const username = document.getElementById('setupUser').value.trim().toLowerCase();
+  const email = document.getElementById('setupEmail').value.trim();
+  const password = document.getElementById('setupPass').value.trim();
+  const errBox = document.getElementById('setupError');
+  if(!name || !username || !email || !password){
+    errBox.textContent = 'Please fill all fields.';
+    errBox.classList.add('show');
+    return;
+  }
+  try{
+    const docRef = await addDoc(collection(db, CONFIG.USERS_COLLECTION), {
+      name, username, email, password, role: 'management', reportsTo: '', area: '', active: true, createdAt: serverTimestamp()
+    });
+    allUsers.push({ id: docRef.id, name, username, email, password, role: 'management', reportsTo: '', area: '', active: true });
+    errBox.classList.remove('show');
+    document.getElementById('setupOverlay').style.display = 'none';
+    enterApp(allUsers.find(u => u.id === docRef.id));
+  } catch(err){
+    console.error(err);
+    errBox.textContent = 'Could not create account — check connection.';
+    errBox.classList.add('show');
+  }
+});
+
+/* ---------------------------------------------------------------------
+   LOGIN FORM
+--------------------------------------------------------------------- */
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const u = document.getElementById('loginUser').value.trim().toLowerCase();
+  const p = document.getElementById('loginPass').value.trim();
+  const errBox = document.getElementById('loginError');
+  try{
+    // Refresh the user list at login time so we always check against the latest data.
+    const snap = await getDocs(collection(db, CONFIG.USERS_COLLECTION));
+    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const match = allUsers.find(x => (x.username||'').toLowerCase() === u && String(x.password||'') === p);
+    if(!match){
+      errBox.textContent = 'Incorrect username or password.';
+      errBox.classList.add('show');
+      return;
+    }
+    if(match.active === false){
+      errBox.textContent = 'This account has been deactivated. Contact your manager.';
+      errBox.classList.add('show');
+      return;
+    }
+    errBox.classList.remove('show');
+    document.getElementById('loginOverlay').style.display = 'none';
+    enterApp(match);
+  } catch(err){
+    console.error(err);
+    errBox.textContent = 'Login error — check connection.';
+    errBox.classList.add('show');
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', ()=> location.reload());
+
+/* ---------------------------------------------------------------------
+   ENTER APP
+--------------------------------------------------------------------- */
+function enterApp(user){
+  currentUser = user;
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('sessionName').textContent = user.name || user.username;
+  document.getElementById('sessionRoleChip').outerHTML = roleChipHtml(user.role).replace('class="role-chip"', 'class="role-chip" id="sessionRoleChip"');
+
+  // Staff have no team to manage — send them straight to Tasks, hide "My Team".
+  if(user.role === 'staff'){
+    document.querySelector('.nav-btn[data-nav="team"]').style.display = 'none';
+    switchNav('tasks');
+  } else {
+    renderRoleTabsForCurrentUser();
+    loadTeam();
+    switchNav('team');
+  }
+  renderProfile();
+  setupTaskPermissions();
+  loadTasks();
+}
+
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> switchNav(btn.dataset.nav));
+});
+function switchNav(which){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.nav === which));
+  document.getElementById('teamSection').style.display = which === 'team' ? '' : 'none';
+  document.getElementById('tasksSection').style.display = which === 'tasks' ? '' : 'none';
+  document.getElementById('profileSection').style.display = which === 'profile' ? '' : 'none';
+  if(which === 'tasks') renderTasks();
+}
+
+/* ---------------------------------------------------------------------
+   PERMISSIONS
+--------------------------------------------------------------------- */
+// Which roles the current user is allowed to create.
+function creatableRoles(role){
+  if(role === 'management') return ['management', 'area_manager', 'manager', 'staff'];
+  if(role === 'area_manager') return ['manager', 'staff'];
+  if(role === 'manager') return ['staff'];
+  return [];
+}
+
+// The subtree of users the current user is allowed to see/manage.
+function getVisibleUsers(){
+  if(currentUser.role === 'management') return allUsers.slice();
+  if(currentUser.role === 'area_manager'){
+    const myManagers = allUsers.filter(u => u.role === 'manager' && u.reportsTo === currentUser.id);
+    const managerIds = myManagers.map(m => m.id);
+    const myStaff = allUsers.filter(u => u.role === 'staff' && managerIds.includes(u.reportsTo));
+    return [currentUser, ...myManagers, ...myStaff];
+  }
+  if(currentUser.role === 'manager'){
+    const myStaff = allUsers.filter(u => u.role === 'staff' && u.reportsTo === currentUser.id);
+    return [currentUser, ...myStaff];
+  }
+  return [currentUser];
+}
+
+// Valid "reports to" options for a given target role, scoped to what the current user can assign.
+function eligibleParents(targetRole){
+  const parentRole = PARENT_ROLE[targetRole];
+  if(!parentRole) return []; // management has no parent
+  if(currentUser.role === 'management'){
+    return allUsers.filter(u => u.role === parentRole);
+  }
+  if(currentUser.role === 'area_manager'){
+    if(targetRole === 'manager') return [currentUser];
+    if(targetRole === 'staff') return allUsers.filter(u => u.role === 'manager' && u.reportsTo === currentUser.id);
+  }
+  if(currentUser.role === 'manager' && targetRole === 'staff') return [currentUser];
+  return [];
+}
+
+function nameFor(userId){
+  const u = allUsers.find(x => x.id === userId);
+  return u ? u.name : '—';
+}
+
+/* ---------------------------------------------------------------------
+   TEAM LIST
+--------------------------------------------------------------------- */
+let activeRoleTab = 'all';
+
+function renderRoleTabsForCurrentUser(){
+  // Hide role tabs the current user has no visibility into, keeps the UI relevant.
+  const visibleRoles = new Set(getVisibleUsers().map(u => u.role));
+  document.querySelectorAll('.role-tab').forEach(tab=>{
+    const r = tab.dataset.role;
+    tab.style.display = (r === 'all' || visibleRoles.has(r)) ? '' : 'none';
+  });
+}
+
+document.querySelectorAll('.role-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.role-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    activeRoleTab = tab.dataset.role;
+    renderTeam();
+  });
+});
+
+async function loadTeam(){
+  const container = document.getElementById('userCards');
+  container.innerHTML = '<div class="loading">Loading team…</div>';
+  try{
+    const q = query(collection(db, CONFIG.USERS_COLLECTION), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // keep currentUser in sync with the freshest copy of itself
+    const freshSelf = allUsers.find(u => u.id === currentUser.id);
+    if(freshSelf) currentUser = freshSelf;
+    renderTeam();
+  } catch(err){
+    container.innerHTML = '<div class="empty">Could not load team.</div>';
+    console.error(err);
+  }
+}
+
+function renderTeam(){
+  const container = document.getElementById('userCards');
+  let visible = getVisibleUsers().filter(u => u.id !== currentUser.id); // don't list yourself in the team grid
+  if(activeRoleTab !== 'all') visible = visible.filter(u => u.role === activeRoleTab);
+  visible.sort((a,b)=> ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role) || (a.name||'').localeCompare(b.name||''));
+
+  if(visible.length === 0){
+    container.innerHTML = '<div class="empty">No team members here yet — tap "Add User" to create one.</div>';
+    return;
+  }
+
+  container.innerHTML = visible.map(u => {
+    const canManage = creatableRoles(currentUser.role).includes(u.role) &&
+      (currentUser.role === 'management' || getVisibleUsers().some(v => v.id === u.id));
+    return `
+      <div class="user-card ${u.active === false ? 'inactive' : ''}">
+        <div class="uc-top">
+          <p class="uc-name">${escapeHtml(u.name || u.username)}</p>
+          ${roleChipHtml(u.role)}
+        </div>
+        <div class="uc-meta">
+          <div><strong>Username:</strong> ${escapeHtml(u.username)}</div>
+          ${u.email ? `<div><strong>Email:</strong> ${escapeHtml(u.email)}</div>` : ''}
+          ${u.reportsTo ? `<div><strong>Reports To:</strong> ${escapeHtml(nameFor(u.reportsTo))}</div>` : ''}
+          ${u.area ? `<div><strong>Area/Branch:</strong> ${escapeHtml(u.area)}</div>` : ''}
+          <div><strong>Status:</strong> ${u.active === false ? 'Inactive' : 'Active'}</div>
+        </div>
+        ${canManage ? `
+        <div class="uc-actions">
+          <button type="button" class="btn-toggle" onclick="toggleActive('${u.id}', ${u.active === false})">${u.active === false ? 'Reactivate' : 'Deactivate'}</button>
+          <button type="button" class="btn-edit" onclick="openEditUser('${u.id}')">Edit</button>
+          <button type="button" class="btn-delete" onclick="deleteUser('${u.id}')">Delete</button>
+        </div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+/* ---------------------------------------------------------------------
+   ADD / EDIT USER MODAL
+--------------------------------------------------------------------- */
+let editingUserId = null; // null = adding new
+
+function populateRoleDropdown(){
+  const sel = document.getElementById('fRole');
+  const options = creatableRoles(currentUser.role);
+  sel.innerHTML = options.map(r => `<option value="${r}">${ROLE_LABELS[r]}</option>`).join('');
+  if(editingUserId){
+    // when editing, allow keeping the existing role even if current user couldn't newly assign it
+    const editingUser = allUsers.find(u => u.id === editingUserId);
+    if(editingUser && !options.includes(editingUser.role)){
+      sel.innerHTML += `<option value="${editingUser.role}">${ROLE_LABELS[editingUser.role]}</option>`;
+    }
+  }
+}
+
+function populateReportsToDropdown(){
+  const roleSel = document.getElementById('fRole');
+  const reportsToSel = document.getElementById('fReportsTo');
+  const reportsToLabel = document.getElementById('fReportsToLabel');
+  const role = roleSel.value;
+  const parents = eligibleParents(role);
+
+  if(!PARENT_ROLE[role]){
+    // Top-level "management" — no parent needed.
+    reportsToLabel.style.display = 'none';
+    reportsToSel.style.display = 'none';
+    reportsToSel.innerHTML = '';
+    return;
+  }
+  reportsToLabel.style.display = '';
+  reportsToSel.style.display = '';
+  reportsToLabel.textContent = `Reports To (${ROLE_LABELS[PARENT_ROLE[role]]})`;
+
+  if(parents.length === 1){
+    // Only one valid parent (e.g. a Manager creating Staff) — auto-select and lock it.
+    reportsToSel.innerHTML = `<option value="${parents[0].id}">${escapeHtml(parents[0].name)}</option>`;
+    reportsToSel.setAttribute('disabled', 'disabled');
+  } else {
+    reportsToSel.removeAttribute('disabled');
+    reportsToSel.innerHTML = '<option value="">Select…</option>' +
+      parents.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  }
+}
+
+document.getElementById('fRole').addEventListener('change', populateReportsToDropdown);
+
+function openAddUser(){
+  editingUserId = null;
+  document.getElementById('userModalTitle').textContent = 'Add User';
+  document.getElementById('fName').value = '';
+  document.getElementById('fUsername').value = '';
+  document.getElementById('fEmail').value = '';
+  document.getElementById('fPassword').value = '';
+  document.getElementById('fPassword').setAttribute('required', 'required');
+  document.getElementById('fPasswordLabel').textContent = 'Password';
+  document.getElementById('fPasswordHint').style.display = 'none';
+  document.getElementById('fArea').value = '';
+  populateRoleDropdown();
+  populateReportsToDropdown();
+  document.getElementById('userModalOverlay').classList.add('show');
+}
+document.getElementById('openAddUserBtn').addEventListener('click', openAddUser);
+
+window.openEditUser = function(id){
+  const u = allUsers.find(x => x.id === id);
+  if(!u) return;
+  editingUserId = id;
+  document.getElementById('userModalTitle').textContent = 'Edit User';
+  document.getElementById('fName').value = u.name || '';
+  document.getElementById('fUsername').value = u.username || '';
+  document.getElementById('fEmail').value = u.email || '';
+  document.getElementById('fPassword').value = '';
+  document.getElementById('fPassword').removeAttribute('required');
+  document.getElementById('fPasswordLabel').textContent = 'Password';
+  document.getElementById('fPasswordHint').style.display = 'block';
+  document.getElementById('fArea').value = u.area || '';
+  populateRoleDropdown();
+  document.getElementById('fRole').value = u.role;
+  populateReportsToDropdown();
+  if(u.reportsTo) document.getElementById('fReportsTo').value = u.reportsTo;
+  document.getElementById('userModalOverlay').classList.add('show');
+};
+
+document.getElementById('closeUserModalBtn').addEventListener('click', ()=>{
+  document.getElementById('userModalOverlay').classList.remove('show');
+});
+
+document.getElementById('saveUserBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('fName').value.trim();
+  const username = document.getElementById('fUsername').value.trim().toLowerCase();
+  const email = document.getElementById('fEmail').value.trim();
+  const password = document.getElementById('fPassword').value.trim();
+  const role = document.getElementById('fRole').value;
+  const reportsTo = document.getElementById('fReportsTo').style.display === 'none' ? '' : document.getElementById('fReportsTo').value;
+  const area = document.getElementById('fArea').value.trim();
+
+  if(!name || !username || !email || !role){
+    showToast('Please fill in name, username, email, and role.', true);
+    return;
+  }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    showToast('Please enter a valid email address.', true);
+    return;
+  }
+  if(PARENT_ROLE[role] && !reportsTo){
+    showToast('Please choose who this person reports to.', true);
+    return;
+  }
+  // username uniqueness check (case-insensitive), excluding the user being edited
+  const clash = allUsers.some(u => u.id !== editingUserId && (u.username||'').toLowerCase() === username);
+  if(clash){
+    showToast('That username is already taken.', true);
+    return;
+  }
+  if(!editingUserId && !password){
+    showToast('Please set a password.', true);
+    return;
+  }
+
+  const btn = document.getElementById('saveUserBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try{
+    if(editingUserId){
+      const payload = { name, username, email, role, reportsTo, area };
+      if(password) payload.password = password;
+      await updateDoc(doc(db, CONFIG.USERS_COLLECTION, editingUserId), payload);
+      showToast('User updated!');
+    } else {
+      await addDoc(collection(db, CONFIG.USERS_COLLECTION), {
+        name, username, email, password, role, reportsTo, area, active: true, createdAt: serverTimestamp()
+      });
+      showToast('User created!');
+    }
+    document.getElementById('userModalOverlay').classList.remove('show');
+    loadTeam();
+  } catch(err){
+    console.error(err);
+    showToast('Save failed — check connection.', true);
+  } finally{
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+});
+
+/* ---------------------------------------------------------------------
+   TOGGLE ACTIVE / DELETE
+--------------------------------------------------------------------- */
+window.toggleActive = async function(id, reactivating){
+  try{
+    await updateDoc(doc(db, CONFIG.USERS_COLLECTION, id), { active: reactivating });
+    showToast(reactivating ? 'Account reactivated.' : 'Account deactivated.');
+    loadTeam();
+  } catch(err){
+    console.error(err);
+    showToast('Update failed — check connection.', true);
+  }
+};
+
+window.deleteUser = async function(id){
+  const target = allUsers.find(u => u.id === id);
+  if(!target) return;
+
+  // Safety check: never allow deleting the last remaining Management account.
+  if(target.role === 'management'){
+    const mgmtCount = allUsers.filter(u => u.role === 'management').length;
+    if(mgmtCount <= 1){
+      showToast('Cannot delete the only Management account.', true);
+      return;
+    }
+  }
+  // Prevent orphaning: block deletion if this person still has people reporting to them.
+  const hasReports = allUsers.some(u => u.reportsTo === id);
+  if(hasReports){
+    showToast("Reassign or remove this person's team members first.", true);
+    return;
+  }
+
+  const ok = confirm(`Delete ${target.name}'s account permanently? This cannot be undone.`);
+  if(!ok) return;
+  try{
+    await deleteDoc(doc(db, CONFIG.USERS_COLLECTION, id));
+    showToast('User deleted.');
+    loadTeam();
+  } catch(err){
+    console.error(err);
+    showToast('Delete failed — check connection.', true);
+  }
+};
+
+/* ---------------------------------------------------------------------
+   FILE → BASE64 HELPERS (no Firebase Storage / Blaze plan needed —
+   everything is saved as text directly inside the task document)
+--------------------------------------------------------------------- */
+const MAX_PDF_BYTES = 700 * 1024; // ~700KB raw, keeps the Firestore doc under its 1MB cap
+
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------------------------------------------------------------------
+   TASKS
+--------------------------------------------------------------------- */
+let allTasks = [];
+let activeTaskSubtab = 'assignedToMe';
+let activeTaskFilter = 'all';
+let openTaskId = null; // task currently open in the detail modal
+
+// Who the current user is allowed to assign tasks to (their own visible team, minus themselves).
+function assignableUsers(){
+  return getVisibleUsers().filter(u => u.id !== currentUser.id && u.active !== false);
+}
+
+function setupTaskPermissions(){
+  const canAssign = assignableUsers().length > 0;
+  document.getElementById('openAddTaskBtn').style.display = canAssign ? '' : 'none';
+  document.querySelector('.task-subtab[data-subtab="assignedByMe"]').style.display = canAssign ? '' : 'none';
+  if(!canAssign && activeTaskSubtab === 'assignedByMe'){
+    activeTaskSubtab = 'assignedToMe';
+    document.querySelectorAll('.task-subtab').forEach(t=>t.classList.toggle('active', t.dataset.subtab === 'assignedToMe'));
+  }
+}
+
+document.querySelectorAll('.task-subtab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    if(tab.style.display === 'none') return;
+    document.querySelectorAll('.task-subtab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    activeTaskSubtab = tab.dataset.subtab;
+    renderTasks();
+  });
+});
+document.querySelectorAll('.task-filter').forEach(f=>{
+  f.addEventListener('click', ()=>{
+    document.querySelectorAll('.task-filter').forEach(t=>t.classList.remove('active'));
+    f.classList.add('active');
+    activeTaskFilter = f.dataset.filter;
+    renderTasks();
+  });
+});
+
+async function loadTasks(){
+  const container = document.getElementById('taskCards');
+  container.innerHTML = '<div class="loading">Loading tasks…</div>';
+  try{
+    const q = query(collection(db, CONFIG.TASKS_COLLECTION), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    allTasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderTasks();
+  } catch(err){
+    container.innerHTML = '<div class="empty">Could not load tasks.</div>';
+    console.error(err);
+  }
+}
+
+function taskStatus(t){
+  if(t.status === 'completed') return 'completed';
+  if(t.dueDate && t.dueDate < new Date().toISOString().slice(0,10)) return 'overdue';
+  return 'pending';
+}
+
+function reqBadgesHtml(t, submission){
+  const s = submission || {};
+  const items = [];
+  if(t.reqCheck) items.push({label:'✓ Check-off', met: !!s.checked});
+  if(t.reqPhoto) items.push({label:'📷 Photo', met: !!s.photoLink});
+  if(t.reqVideo) items.push({label:'🎥 Video', met: !!s.videoLink});
+  if(t.reqPdf) items.push({label:'📄 PDF', met: !!s.pdfBase64});
+  return `<div class="req-badges">${items.map(i => `<span class="req-badge ${i.met ? 'met' : ''}">${i.label}</span>`).join('')}</div>`;
+}
+
+function renderTasks(){
+  const container = document.getElementById('taskCards');
+  let visible = allTasks.filter(t => activeTaskSubtab === 'assignedToMe' ? t.assignedTo === currentUser.id : t.assignedBy === currentUser.id);
+  if(activeTaskFilter !== 'all') visible = visible.filter(t => taskStatus(t) === activeTaskFilter || (activeTaskFilter === 'pending' && taskStatus(t) === 'overdue'));
+
+  if(visible.length === 0){
+    container.innerHTML = `<div class="empty">${activeTaskSubtab === 'assignedToMe' ? 'No tasks assigned to you yet.' : 'No tasks assigned by you yet.'}</div>`;
+    return;
+  }
+
+  container.innerHTML = visible.map(t => {
+    const status = taskStatus(t);
+    const otherPartyLabel = activeTaskSubtab === 'assignedToMe' ? 'Assigned By' : 'Assigned To';
+    const otherPartyId = activeTaskSubtab === 'assignedToMe' ? t.assignedBy : t.assignedTo;
+    return `
+      <div class="task-card status-${status}">
+        <div class="tc-top">
+          <p class="tc-title">${escapeHtml(t.title)}</p>
+          <span class="status-pill status-${status}">${status}</span>
+        </div>
+        ${t.description ? `<div class="tc-desc">${escapeHtml(t.description)}</div>` : ''}
+        <div class="tc-meta">
+          <div><strong>${otherPartyLabel}:</strong> ${escapeHtml(nameFor(otherPartyId))}</div>
+          ${t.dueDate ? `<div><strong>Due:</strong> ${escapeHtml(t.dueDate)}</div>` : ''}
+        </div>
+        ${reqBadgesHtml(t, t.submission)}
+        <div class="tc-actions">
+          <button type="button" class="btn-view" onclick="openTaskDetail('${t.id}')">${status === 'completed' ? 'View' : (activeTaskSubtab === 'assignedToMe' ? 'Open' : 'View Progress')}</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ---- Create Task modal ---- */
+function populateAssigneeDropdown(){
+  const sel = document.getElementById('tAssignee');
+  const options = assignableUsers();
+  sel.innerHTML = options.map(u => `<option value="${u.id}">${escapeHtml(u.name || u.username)} — ${ROLE_LABELS[u.role]}</option>`).join('');
+}
+
+function openAddTask(){
+  document.getElementById('tTitle').value = '';
+  document.getElementById('tDesc').value = '';
+  document.getElementById('tDueDate').value = '';
+  document.getElementById('tReqCheck').checked = true;
+  document.getElementById('tReqPhoto').checked = false;
+  document.getElementById('tReqVideo').checked = false;
+  document.getElementById('tReqPdf').checked = false;
+  populateAssigneeDropdown();
+  document.getElementById('taskModalOverlay').classList.add('show');
+}
+document.getElementById('openAddTaskBtn').addEventListener('click', openAddTask);
+document.getElementById('closeTaskModalBtn').addEventListener('click', ()=>{
+  document.getElementById('taskModalOverlay').classList.remove('show');
+});
+
+document.getElementById('saveTaskBtn').addEventListener('click', async ()=>{
+  const title = document.getElementById('tTitle').value.trim();
+  const description = document.getElementById('tDesc').value.trim();
+  const assignedTo = document.getElementById('tAssignee').value;
+  const dueDate = document.getElementById('tDueDate').value;
+  const reqCheck = document.getElementById('tReqCheck').checked;
+  const reqPhoto = document.getElementById('tReqPhoto').checked;
+  const reqVideo = document.getElementById('tReqVideo').checked;
+  const reqPdf = document.getElementById('tReqPdf').checked;
+
+  if(!title){ showToast('Please enter a task title.', true); return; }
+  if(!assignedTo){ showToast('Please choose who to assign this to.', true); return; }
+  if(!reqCheck && !reqPhoto && !reqVideo && !reqPdf){ showToast('Pick at least one completion requirement.', true); return; }
+
+  const btn = document.getElementById('saveTaskBtn');
+  btn.disabled = true; btn.textContent = 'Assigning...';
+  try{
+    await addDoc(collection(db, CONFIG.TASKS_COLLECTION), {
+      title, description, assignedTo, assignedBy: currentUser.id,
+      dueDate: dueDate || '', reqCheck, reqPhoto, reqVideo, reqPdf,
+      status: 'pending', submission: null, createdAt: serverTimestamp()
+    });
+    showToast('Task assigned!');
+    document.getElementById('taskModalOverlay').classList.remove('show');
+    loadTasks();
+  } catch(err){
+    console.error(err);
+    showToast('Could not assign task — check connection.', true);
+  } finally{
+    btn.disabled = false; btn.textContent = 'Assign Task';
+  }
+});
+
+/* ---- Task detail / submission modal ---- */
+window.openTaskDetail = function(taskId){
+  const t = allTasks.find(x => x.id === taskId);
+  if(!t) return;
+  openTaskId = taskId;
+  const isAssignee = t.assignedTo === currentUser.id;
+  const status = taskStatus(t);
+  document.getElementById('taskDetailTitle').textContent = t.title;
+  const body = document.getElementById('taskDetailBody');
+  const foot = document.getElementById('taskDetailFoot');
+
+  let html = '';
+  if(t.description) html += `<div class="tc-desc" style="margin-bottom:12px;">${escapeHtml(t.description)}</div>`;
+  html += `<div class="tc-meta">
+    <div><strong>Assigned By:</strong> ${escapeHtml(nameFor(t.assignedBy))}</div>
+    <div><strong>Assigned To:</strong> ${escapeHtml(nameFor(t.assignedTo))}</div>
+    ${t.dueDate ? `<div><strong>Due:</strong> ${escapeHtml(t.dueDate)}</div>` : ''}
+  </div>`;
+  html += reqBadgesHtml(t, t.submission);
+
+  if(t.status === 'completed' && t.submission){
+    const s = t.submission;
+    html += `<div class="submission-box">
+      ${t.reqCheck ? `<div>✓ Marked done by staff</div>` : ''}
+      ${t.reqPhoto && s.photoLink ? `<div>📷 Photo: <a href="${escapeHtml(s.photoLink)}" target="_blank" rel="noopener">${escapeHtml(s.photoLink)}</a><br><img src="${escapeHtml(s.photoLink)}" alt="proof photo" onerror="this.style.display='none'"></div>` : ''}
+      ${t.reqVideo && s.videoLink ? `<div>🎥 Video link: <a href="${escapeHtml(s.videoLink)}" target="_blank" rel="noopener">${escapeHtml(s.videoLink)}</a></div>` : ''}
+      ${t.reqPdf && s.pdfBase64 ? `<div>📄 PDF: <a href="${s.pdfBase64}" download="${escapeHtml(s.pdfName || 'attachment.pdf')}">Download attachment</a></div>` : ''}
+      ${s.note ? `<div style="margin-top:6px;">📝 ${escapeHtml(s.note)}</div>` : ''}
+    </div>`;
+  }
+
+  if(isAssignee && status !== 'completed'){
+    html += `<div id="submissionForm">`;
+    if(t.reqPhoto) html += `<label>📷 Photo Link</label><input type="url" id="subPhoto" placeholder="https://..."><div class="modal-hint">Upload the photo to Google Photos / Drive / WhatsApp etc., then paste the shareable link here (keeps full quality).</div>`;
+    if(t.reqVideo) html += `<label>🎥 Video Link</label><input type="url" id="subVideo" placeholder="https://...">`;
+    if(t.reqPdf) html += `<label>📄 PDF Attachment</label><input type="file" accept="application/pdf" id="subPdf"><div class="modal-hint">Keep it under ~700KB (it's stored directly in the database).</div>`;
+    if(t.reqCheck) html += `<label class="req-check-row"><input type="checkbox" id="subCheck"> I've completed this task</label>`;
+    html += `<div class="upload-progress" id="subProgress" style="display:none;"></div>`;
+    html += `</div>`;
+    foot.style.display = '';
+  } else {
+    foot.style.display = 'none';
+  }
+
+  body.innerHTML = html;
+  document.getElementById('taskDetailModalOverlay').classList.add('show');
+};
+
+document.getElementById('closeTaskDetailModalBtn').addEventListener('click', ()=>{
+  document.getElementById('taskDetailModalOverlay').classList.remove('show');
+  openTaskId = null;
+});
+
+document.getElementById('submitTaskBtn').addEventListener('click', async ()=>{
+  const t = allTasks.find(x => x.id === openTaskId);
+  if(!t) return;
+
+  if(t.reqCheck && !document.getElementById('subCheck').checked){
+    showToast('Please tick the check-off box.', true); return;
+  }
+  const videoLink = t.reqVideo ? document.getElementById('subVideo').value.trim() : '';
+  if(t.reqVideo && !videoLink){ showToast('Please paste the video link.', true); return; }
+
+  const photoLink = t.reqPhoto ? document.getElementById('subPhoto').value.trim() : '';
+  if(t.reqPhoto && !photoLink){ showToast('Please paste the photo link.', true); return; }
+
+  const pdfFile = t.reqPdf ? document.getElementById('subPdf').files[0] : null;
+  if(t.reqPdf && !pdfFile){ showToast('Please attach the required PDF.', true); return; }
+  if(pdfFile && pdfFile.size > MAX_PDF_BYTES){
+    showToast(`PDF is too large — please keep it under ${Math.round(MAX_PDF_BYTES/1024)}KB.`, true);
+    return;
+  }
+
+  const btn = document.getElementById('submitTaskBtn');
+  const progress = document.getElementById('subProgress');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  try{
+    const submission = { checked: t.reqCheck ? true : false, videoLink, photoLink, completedAt: new Date().toISOString() };
+
+    if(pdfFile){
+      progress.style.display = 'block'; progress.textContent = 'Attaching PDF…';
+      submission.pdfBase64 = await fileToBase64(pdfFile);
+      submission.pdfName = pdfFile.name;
+    }
+
+    await updateDoc(doc(db, CONFIG.TASKS_COLLECTION, openTaskId), { status: 'completed', submission });
+    showToast('Task marked complete!');
+    document.getElementById('taskDetailModalOverlay').classList.remove('show');
+    openTaskId = null;
+    loadTasks();
+  } catch(err){
+    console.error(err);
+    showToast('Submit failed — check connection, or the file may be too large.', true);
+  } finally{
+    btn.disabled = false; btn.textContent = 'Mark Complete';
+    progress.style.display = 'none';
+  }
+});
+
+/* ---------------------------------------------------------------------
+   MY PROFILE
+--------------------------------------------------------------------- */
+function renderProfile(){
+  document.getElementById('profileName').textContent = currentUser.name || currentUser.username;
+  document.getElementById('profileRole').innerHTML = roleChipHtml(currentUser.role);
+  document.getElementById('profileUsername').textContent = currentUser.username;
+  document.getElementById('profileEmail').textContent = currentUser.email || '—';
+  document.getElementById('profileReportsTo').textContent = currentUser.reportsTo ? nameFor(currentUser.reportsTo) : '—';
+  document.getElementById('profileArea').textContent = currentUser.area || '—';
+  document.getElementById('profileStatus').textContent = currentUser.active === false ? 'Inactive' : 'Active';
+}
+</script>
+</body>
+</html>
