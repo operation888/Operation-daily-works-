@@ -94,8 +94,8 @@
   .loading{text-align:center;padding:50px 20px;color:var(--ink-soft);font-size:14px;}
 
   /* ===== MODAL ===== */
-  #userModalOverlay,#taskModalOverlay,#taskDetailModalOverlay,#perfModalOverlay{position:fixed;inset:0;background:rgba(36,18,9,.55);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:20px;overflow-y:auto;}
-  #userModalOverlay.show,#taskModalOverlay.show,#taskDetailModalOverlay.show,#perfModalOverlay.show{display:flex;}
+  #userModalOverlay,#taskModalOverlay,#taskDetailModalOverlay,#perfModalOverlay,#compareModalOverlay{position:fixed;inset:0;background:rgba(36,18,9,.55);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:20px;overflow-y:auto;}
+  #userModalOverlay.show,#taskModalOverlay.show,#taskDetailModalOverlay.show,#perfModalOverlay.show,#compareModalOverlay.show{display:flex;}
   .modal{background:var(--cream);border-radius:16px;max-width:460px;width:100%;margin:20px auto;box-shadow:0 20px 50px rgba(0,0,0,.35);overflow:hidden;}
   .modal-head{background:var(--coffee);color:var(--cream);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;}
   .modal-head h3{margin:0;font-size:16px;}
@@ -263,6 +263,7 @@
         <div class="role-tab" data-role="manager">Manager</div>
         <div class="role-tab" data-role="staff">Staff</div>
       </div>
+      <button type="button" class="add-btn" id="openCompareBtn" style="width:100%;margin-bottom:16px;">📊 Compare Performance</button>
       <div class="user-cards" id="userCards"><div class="loading">Loading team…</div></div>
     </div>
 
@@ -421,6 +422,36 @@
       <button type="button" class="add-btn" id="perfExportBtn" style="width:100%;margin-bottom:14px;">⬇️ Export to Excel</button>
       <canvas id="perfDoughnut" height="220"></canvas>
       <canvas id="perfBar" height="220" style="margin-top:20px;"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== COMPARE PERFORMANCE MODAL ===================== -->
+<div id="compareModalOverlay">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-head">
+      <h3>Compare Performance</h3>
+      <button type="button" id="closeCompareModalBtn">Close</button>
+    </div>
+    <div class="modal-body">
+      <p class="sub" style="margin:0 0 8px;font-size:13px;color:var(--ink-soft);">Select the staff you want to compare (2 or more).</p>
+      <div id="compareUserList" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:14px;"></div>
+
+      <div class="task-filters" id="compareFilters">
+        <div class="task-filter active" data-range="week">This Week</div>
+        <div class="task-filter" data-range="month">This Month</div>
+        <div class="task-filter" data-range="30d">Last 30 Days</div>
+        <div class="task-filter" data-range="custom">Custom</div>
+      </div>
+      <div id="compareCustomRange" style="display:none;margin-bottom:6px;">
+        <label>From</label><input type="date" id="compareFrom">
+        <label>To</label><input type="date" id="compareTo">
+      </div>
+      <button type="button" class="add-btn" id="compareShowBtn" style="width:100%;margin:10px 0 14px;">Show Comparison</button>
+
+      <div id="compareSummary" class="cp-summary" style="margin-bottom:10px;"></div>
+      <button type="button" class="add-btn" id="compareExportBtn" style="width:100%;margin-bottom:14px;display:none;">⬇️ Export Comparison to Excel</button>
+      <canvas id="compareBar" height="260"></canvas>
     </div>
   </div>
 </div>
@@ -1716,6 +1747,147 @@ function exportPerformanceToExcel(){
 }
 
 document.getElementById('perfExportBtn').addEventListener('click', exportPerformanceToExcel);
+
+/* ---------------------------------------------------------------------
+   COMPARE PERFORMANCE (multiple staff side-by-side, same date range)
+--------------------------------------------------------------------- */
+let compareChart = null;
+let compareRange = 'week';
+let lastCompareResult = null; // cached for export: [{ user, events }]
+
+document.getElementById('openCompareBtn').addEventListener('click', ()=>{
+  const candidates = getVisibleUsers();
+  const list = document.getElementById('compareUserList');
+  list.innerHTML = candidates.map(u => `
+    <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;">
+      <input type="checkbox" class="compare-user-cb" value="${u.id}">
+      ${escapeHtml(u.name || u.username)} ${roleChipHtml(u.role)}
+    </label>
+  `).join('') || '<div class="empty" style="padding:10px;">No team members to compare.</div>';
+
+  compareRange = 'week';
+  document.querySelectorAll('#compareFilters .task-filter').forEach(f => f.classList.toggle('active', f.dataset.range === 'week'));
+  document.getElementById('compareCustomRange').style.display = 'none';
+  document.getElementById('compareSummary').innerHTML = '';
+  document.getElementById('compareExportBtn').style.display = 'none';
+  if(compareChart){ compareChart.destroy(); compareChart = null; }
+  lastCompareResult = null;
+
+  document.getElementById('compareModalOverlay').classList.add('show');
+});
+document.getElementById('closeCompareModalBtn').addEventListener('click', ()=>{
+  document.getElementById('compareModalOverlay').classList.remove('show');
+});
+document.querySelectorAll('#compareFilters .task-filter').forEach(f=>{
+  f.addEventListener('click', ()=>{
+    document.querySelectorAll('#compareFilters .task-filter').forEach(t=>t.classList.remove('active'));
+    f.classList.add('active');
+    compareRange = f.dataset.range;
+    document.getElementById('compareCustomRange').style.display = compareRange === 'custom' ? '' : 'none';
+  });
+});
+
+function getCompareDateRange(){
+  const today = new Date(); today.setHours(23,59,59,999);
+  let start;
+  if(compareRange === 'week'){ start = new Date(today); start.setDate(start.getDate()-6); start.setHours(0,0,0,0); return [start, today]; }
+  if(compareRange === 'month'){ start = new Date(today.getFullYear(), today.getMonth(), 1); start.setHours(0,0,0,0); return [start, today]; }
+  if(compareRange === '30d'){ start = new Date(today); start.setDate(start.getDate()-29); start.setHours(0,0,0,0); return [start, today]; }
+  const fromVal = document.getElementById('compareFrom').value;
+  const toVal = document.getElementById('compareTo').value;
+  const s = fromVal ? new Date(fromVal+'T00:00:00') : (()=>{ const d=new Date(today); d.setDate(d.getDate()-6); d.setHours(0,0,0,0); return d; })();
+  const e = toVal ? new Date(toVal+'T23:59:59') : today;
+  return [s, e];
+}
+
+document.getElementById('compareShowBtn').addEventListener('click', ()=>{
+  const selectedIds = Array.from(document.querySelectorAll('.compare-user-cb:checked')).map(cb => cb.value);
+  if(selectedIds.length < 2){
+    showToast('Select at least 2 staff to compare.', true);
+    return;
+  }
+  const [start, end] = getCompareDateRange();
+  const results = selectedIds.map(id => ({ user: allUsers.find(u => u.id === id), events: getPerformanceEvents(id, start, end) }));
+  lastCompareResult = { results, start, end };
+
+  const names = results.map(r => r.user ? (r.user.name || r.user.username) : '—');
+  const onTime = results.map(r => r.events.filter(e=>e.status==='onTime').length);
+  const late = results.map(r => r.events.filter(e=>e.status==='late').length);
+  const missed = results.map(r => r.events.filter(e=>e.status==='missed').length);
+  const pending = results.map(r => r.events.filter(e=>e.status==='pending').length);
+
+  document.getElementById('compareSummary').innerHTML = results.map((r,i)=>{
+    const total = r.events.length;
+    const pct = total ? Math.round((onTime[i]/total)*100) : 0;
+    return `<div><strong>${escapeHtml(names[i])}:</strong> ${onTime[i]}/${total} on time (${pct}%) · ${late[i]} late · ${missed[i]} missed</div>`;
+  }).join('');
+
+  const ctx = document.getElementById('compareBar').getContext('2d');
+  if(compareChart) compareChart.destroy();
+  compareChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: names,
+      datasets: [
+        { label:'On Time', data: onTime, backgroundColor:'#3D6B4F' },
+        { label:'Late', data: late, backgroundColor:'#B5793A' },
+        { label:'Missed', data: missed, backgroundColor:'#8A3324' },
+        { label:'Pending', data: pending, backgroundColor:'#E3D3BB' }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { x: { stacked:true }, y: { stacked:true, beginAtZero:true, ticks:{ stepSize:1 } } },
+      plugins: { legend: { position:'bottom', labels:{ font:{ family:'Georgia' } } } }
+    }
+  });
+
+  document.getElementById('compareExportBtn').style.display = '';
+});
+
+// Builds one .xlsx with every selected staff's tasks (Staff, Task, Due, Completed, Status)
+// plus a per-staff summary block, for the currently shown comparison.
+function exportComparisonToExcel(){
+  if(!lastCompareResult){ showToast('Show a comparison first.', true); return; }
+  const { results, start, end } = lastCompareResult;
+
+  const rows = [];
+  results.forEach(r=>{
+    const staffName = r.user ? (r.user.name || r.user.username) : '—';
+    r.events.slice().sort((a,b)=>a.dueAt-b.dueAt).forEach(e=>{
+      rows.push({
+        'Staff': staffName,
+        'Task Name': e.title || '(untitled task)',
+        'Due Date': e.dueAt.toLocaleDateString(),
+        'Due Time': e.dueAt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+        'Completed Date': e.completedAt ? e.completedAt.toLocaleDateString() : '—',
+        'Completed Time': e.completedAt ? e.completedAt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—',
+        'Status': statusLabel(e.status)
+      });
+    });
+  });
+
+  rows.push({});
+  rows.push({ 'Staff': 'Summary' });
+  results.forEach(r=>{
+    const staffName = r.user ? (r.user.name || r.user.username) : '—';
+    const counts = { onTime:0, late:0, missed:0, pending:0 };
+    r.events.forEach(e => counts[e.status]++);
+    const total = r.events.length;
+    const pct = total ? Math.round((counts.onTime/total)*100) : 0;
+    rows.push({ 'Staff': staffName, 'Task Name': `${counts.onTime}/${total} on time (${pct}%)`, 'Due Date': `Late: ${counts.late}`, 'Due Time': `Missed: ${counts.missed}`, 'Completed Date': `Pending: ${counts.pending}` });
+  });
+
+  const sheet = XLSX.utils.json_to_sheet(rows);
+  sheet['!cols'] = [{wch:18},{wch:28},{wch:14},{wch:12},{wch:16},{wch:14},{wch:10}];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Comparison');
+
+  const fromStr = start.toISOString().slice(0,10);
+  const toStr = end.toISOString().slice(0,10);
+  XLSX.writeFile(workbook, `performance_comparison_${fromStr}_to_${toStr}.xlsx`);
+}
+document.getElementById('compareExportBtn').addEventListener('click', exportComparisonToExcel);
 
 /* ---------------------------------------------------------------------
    MY PROFILE
