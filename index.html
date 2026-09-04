@@ -94,8 +94,8 @@
   .loading{text-align:center;padding:50px 20px;color:var(--ink-soft);font-size:14px;}
 
   /* ===== MODAL ===== */
-  #userModalOverlay,#taskModalOverlay,#taskDetailModalOverlay{position:fixed;inset:0;background:rgba(36,18,9,.55);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:20px;overflow-y:auto;}
-  #userModalOverlay.show,#taskModalOverlay.show,#taskDetailModalOverlay.show{display:flex;}
+  #userModalOverlay,#taskModalOverlay,#taskDetailModalOverlay,#perfModalOverlay{position:fixed;inset:0;background:rgba(36,18,9,.55);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:20px;overflow-y:auto;}
+  #userModalOverlay.show,#taskModalOverlay.show,#taskDetailModalOverlay.show,#perfModalOverlay.show{display:flex;}
   .modal{background:var(--cream);border-radius:16px;max-width:460px;width:100%;margin:20px auto;box-shadow:0 20px 50px rgba(0,0,0,.35);overflow:hidden;}
   .modal-head{background:var(--coffee);color:var(--cream);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;}
   .modal-head h3{margin:0;font-size:16px;}
@@ -418,6 +418,7 @@
         <button type="button" class="add-btn" id="perfApplyBtn" style="width:100%;margin-bottom:14px;">Apply</button>
       </div>
       <div id="perfSummary" class="cp-summary" style="margin-bottom:10px;"></div>
+      <button type="button" class="add-btn" id="perfExportBtn" style="width:100%;margin-bottom:14px;">⬇️ Export to Excel</button>
       <canvas id="perfDoughnut" height="220"></canvas>
       <canvas id="perfBar" height="220" style="margin-top:20px;"></canvas>
     </div>
@@ -427,6 +428,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -1587,9 +1589,9 @@ function getPerformanceEvents(userId, start, end){
         if(due < start || due > end) return;
         if(c.status === 'done'){
           const completed = new Date(c.completedAt);
-          events.push({ date: due, status: completed <= new Date(c.graceUntil) ? 'onTime' : 'late' });
+          events.push({ date: due, status: completed <= new Date(c.graceUntil) ? 'onTime' : 'late', title: t.title, dueAt: due, completedAt: completed });
         } else {
-          events.push({ date: due, status: new Date(c.graceUntil) < now ? 'missed' : 'pending' });
+          events.push({ date: due, status: new Date(c.graceUntil) < now ? 'missed' : 'pending', title: t.title, dueAt: due, completedAt: null });
         }
       });
     } else {
@@ -1603,9 +1605,9 @@ function getPerformanceEvents(userId, start, end){
       if(t.status === 'completed' && t.submission){
         const completed = new Date(t.submission.completedAt);
         const onTime = !t.dueDate || completed <= due;
-        events.push({ date: due, status: onTime ? 'onTime' : 'late' });
+        events.push({ date: due, status: onTime ? 'onTime' : 'late', title: t.title, dueAt: due, completedAt: completed });
       } else {
-        events.push({ date: due, status: due < now ? 'missed' : 'pending' });
+        events.push({ date: due, status: due < now ? 'missed' : 'pending', title: t.title, dueAt: due, completedAt: null });
       }
     }
   });
@@ -1662,6 +1664,58 @@ function renderPerformance(){
     }
   });
 }
+
+function statusLabel(s){
+  if(s === 'onTime') return 'On Time';
+  if(s === 'late') return 'Late';
+  if(s === 'missed') return 'Missed';
+  return 'Pending';
+}
+
+// Builds an .xlsx of the currently filtered performance events for perfUserId
+// and downloads it — columns: Task Name, Due Date/Time, Completed Date/Time, Status.
+function exportPerformanceToExcel(){
+  const [start, end] = getPerfDateRange();
+  const events = getPerformanceEvents(perfUserId, start, end)
+    .slice()
+    .sort((a,b) => a.dueAt - b.dueAt);
+
+  if(events.length === 0){
+    showToast('No tasks in this date range to export.');
+    return;
+  }
+
+  const rows = events.map(e => ({
+    'Task Name': e.title || '(untitled task)',
+    'Due Date': e.dueAt.toLocaleDateString(),
+    'Due Time': e.dueAt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+    'Completed Date': e.completedAt ? e.completedAt.toLocaleDateString() : '—',
+    'Completed Time': e.completedAt ? e.completedAt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—',
+    'Status': statusLabel(e.status)
+  }));
+
+  const counts = { onTime:0, late:0, missed:0, pending:0 };
+  events.forEach(e => counts[e.status]++);
+  rows.push({}); // blank spacer row
+  rows.push({ 'Task Name': 'Summary' });
+  rows.push({ 'Task Name': 'Total Tasks', 'Due Date': events.length });
+  rows.push({ 'Task Name': 'On Time', 'Due Date': counts.onTime });
+  rows.push({ 'Task Name': 'Late', 'Due Date': counts.late });
+  rows.push({ 'Task Name': 'Missed', 'Due Date': counts.missed });
+  rows.push({ 'Task Name': 'Pending', 'Due Date': counts.pending });
+
+  const sheet = XLSX.utils.json_to_sheet(rows);
+  sheet['!cols'] = [{wch:28},{wch:14},{wch:12},{wch:16},{wch:14},{wch:10}];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Performance');
+
+  const userName = (nameFor(perfUserId) || 'user').replace(/[^a-z0-9]+/gi, '_');
+  const fromStr = start.toISOString().slice(0,10);
+  const toStr = end.toISOString().slice(0,10);
+  XLSX.writeFile(workbook, `performance_${userName}_${fromStr}_to_${toStr}.xlsx`);
+}
+
+document.getElementById('perfExportBtn').addEventListener('click', exportPerformanceToExcel);
 
 /* ---------------------------------------------------------------------
    MY PROFILE
