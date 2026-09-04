@@ -164,6 +164,28 @@
   .req-optional-tag{font-weight:400;font-size:11.5px;color:var(--ink-soft);}
   .upload-progress{font-size:12px;color:var(--caramel);margin:-6px 0 12px;}
   .fab-note{font-size:12px;color:var(--ink-soft);margin:-8px 0 14px;line-height:1.5;}
+
+  /* ===== RECURRING TASK CHECKPOINTS ===== */
+  .cp-progress-wrap{background:var(--cream-2);border-radius:20px;height:8px;overflow:hidden;margin-bottom:8px;}
+  .cp-progress-bar{background:var(--ok);height:100%;border-radius:20px;transition:width .3s;}
+  .cp-summary{font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;}
+  .cp-list{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
+  .cp-row{border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:var(--cream-2);}
+  .cp-row.done{background:var(--ok-bg);border-color:#BFD9C6;}
+  .cp-row.overdue{background:var(--alert-bg);border-color:#E3B6AE;}
+  .cp-row-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;}
+  .cp-row-title{font-weight:700;font-size:13.5px;}
+  .cp-row-time{font-size:12px;color:var(--ink-soft);}
+  .cp-row-photo{max-width:100%;border-radius:8px;margin-top:8px;display:block;}
+  .cp-take-btn{width:100%;margin-top:8px;background:var(--coffee);color:var(--cream);border:none;border-radius:8px;padding:9px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:Georgia,serif;}
+  .cp-take-btn:hover{background:var(--coffee-deep);}
+  .cp-take-btn:disabled{opacity:.6;cursor:not-allowed;}
+
+  .photo-capture-box{border:1.5px dashed var(--line);border-radius:10px;padding:12px;margin-bottom:14px;text-align:center;background:var(--cream-2);}
+  .photo-capture-box img{max-width:100%;border-radius:8px;display:block;margin:0 auto 8px;}
+  .capture-btn{background:var(--coffee);color:var(--cream);border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:Georgia,serif;width:100%;}
+  .capture-btn:hover{background:var(--coffee-deep);}
+  .capture-btn.retake{background:var(--cream);color:var(--ink-soft);border:1px solid var(--line);margin-top:8px;}
 </style>
 </head>
 <body>
@@ -273,6 +295,7 @@
         <div class="profile-row"><span>Area / Branch</span><span id="profileArea">—</span></div>
         <div class="profile-row"><span>Status</span><span id="profileStatus">—</span></div>
       </div>
+      <button type="button" class="add-btn" id="viewMyPerfBtn" style="width:100%;margin-top:14px;">📊 View My Performance</button>
     </div>
   </div>
 </div>
@@ -319,16 +342,41 @@
       <input type="text" id="tTitle" placeholder="e.g. Restock napkins &amp; cups" required>
       <label>Description <span style="text-transform:none;font-weight:400;">(optional)</span></label>
       <input type="text" id="tDesc" placeholder="Any extra detail...">
-      <label>Assign To</label>
-      <select id="tAssignee"></select>
+      <label>Assign To <span style="text-transform:none;font-weight:400;">(select one or more)</span></label>
+      <div id="tAssigneeList" style="max-height:180px;overflow-y:auto;border:1.5px solid var(--line);background:var(--cream-2);border-radius:10px;padding:8px 10px;margin-bottom:14px;"></div>
       <label>Due Date <span style="text-transform:none;font-weight:400;">(optional)</span></label>
       <input type="date" id="tDueDate">
-      <label>What's required to mark this complete?</label>
-      <div class="fab-note">Choose at least one. Staff will need to submit these before the task counts as done.</div>
-      <label class="req-check-row"><input type="checkbox" id="tReqCheck" checked> Simple check-off (no proof needed)</label>
-      <label class="req-check-row"><input type="checkbox" id="tReqPhoto"> 📷 Photo link required</label>
-      <label class="req-check-row"><input type="checkbox" id="tReqVideo"> 🎥 Video link required</label>
-      <label class="req-check-row"><input type="checkbox" id="tReqPdf"> 📄 PDF attachment required</label>
+
+      <label class="req-check-row"><input type="checkbox" id="tRecurring"> 🔁 Repeat with scheduled check-ins</label>
+      <div id="recurringFields" style="display:none;">
+        <label>Repeat Frequency</label>
+        <select id="tRecurrenceType">
+          <option value="daily">Per Day</option>
+          <option value="weekly">Per Week</option>
+          <option value="monthly">Per Month</option>
+          <option value="custom">Custom Window (hours)</option>
+        </select>
+        <div id="customWindowField" style="display:none;">
+          <label>Total Window (hours)</label>
+          <input type="number" id="tWindowHours" min="0.5" step="0.5" placeholder="e.g. 12">
+        </div>
+        <label id="tTimesLabel">How many times per day?</label>
+        <input type="number" id="tTimesPerWindow" min="1" step="1" placeholder="e.g. 6">
+        <label>Due window per check-in (minutes)</label>
+        <input type="number" id="tGraceMinutes" min="1" step="1" placeholder="e.g. 30" value="30">
+        <label>Start Date &amp; Time</label>
+        <input type="datetime-local" id="tStartAt">
+        <div class="modal-hint" id="recurringPreview"></div>
+      </div>
+
+      <div id="simpleReqFields">
+        <label>What's required to mark this complete?</label>
+        <div class="fab-note">Choose at least one. Staff will need to submit these before the task counts as done.</div>
+        <label class="req-check-row"><input type="checkbox" id="tReqCheck" checked> Simple check-off (no proof needed)</label>
+        <label class="req-check-row"><input type="checkbox" id="tReqPhoto"> 📷 Live photo required</label>
+        <label class="req-check-row"><input type="checkbox" id="tReqVideo"> 🎥 Video link required</label>
+        <label class="req-check-row"><input type="checkbox" id="tReqPdf"> 📄 PDF attachment required</label>
+      </div>
     </div>
     <div class="modal-foot">
       <button type="button" id="saveTaskBtn">Assign Task</button>
@@ -350,8 +398,35 @@
   </div>
 </div>
 
+<!-- ===================== PERFORMANCE MODAL ===================== -->
+<div id="perfModalOverlay">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <h3 id="perfModalTitle">Performance</h3>
+      <button type="button" id="closePerfModalBtn">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="task-filters" id="perfFilters">
+        <div class="task-filter active" data-range="week">This Week</div>
+        <div class="task-filter" data-range="month">This Month</div>
+        <div class="task-filter" data-range="30d">Last 30 Days</div>
+        <div class="task-filter" data-range="custom">Custom</div>
+      </div>
+      <div id="perfCustomRange" style="display:none;margin-bottom:6px;">
+        <label>From</label><input type="date" id="perfFrom">
+        <label>To</label><input type="date" id="perfTo">
+        <button type="button" class="add-btn" id="perfApplyBtn" style="width:100%;margin-bottom:14px;">Apply</button>
+      </div>
+      <div id="perfSummary" class="cp-summary" style="margin-bottom:10px;"></div>
+      <canvas id="perfDoughnut" height="220"></canvas>
+      <canvas id="perfBar" height="220" style="margin-top:20px;"></canvas>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -657,6 +732,9 @@ function renderTeam(){
           <button type="button" class="btn-edit" onclick="openEditUser('${u.id}')">Edit</button>
           <button type="button" class="btn-delete" onclick="deleteUser('${u.id}')">Delete</button>
         </div>` : ''}
+        <div class="uc-actions">
+          <button type="button" class="btn-toggle" onclick="openPerformance('${u.id}')">📊 Performance</button>
+        </div>
       </div>`;
   }).join('');
 }
@@ -867,6 +945,60 @@ function fileToBase64(file){
   });
 }
 
+// Compress a captured photo down to a reasonable size before storing it as
+// base64 text inside the Firestore document (keeps documents well under 1MB).
+function compressImage(file, maxDim = 1000, quality = 0.7){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if(w > maxDim || h > maxDim){
+          if(w >= h){ h = Math.round(h * (maxDim / w)); w = maxDim; }
+          else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Opens the device camera directly (capture="environment") for a LIVE photo —
+// not a gallery/file picker — and returns a compressed base64 data URL.
+function pickLivePhoto(){
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    let settled = false;
+    input.addEventListener('change', async () => {
+      const file = input.files[0];
+      document.body.removeChild(input);
+      settled = true;
+      if(!file){ reject(new Error('No photo captured')); return; }
+      try{ resolve(await compressImage(file)); }
+      catch(err){ reject(err); }
+    });
+    // If the user cancels the camera, no 'change' fires — clean up quietly after a while.
+    window.addEventListener('focus', function onFocus(){
+      window.removeEventListener('focus', onFocus);
+      setTimeout(()=>{ if(!settled && input.parentNode) document.body.removeChild(input); }, 800);
+    }, { once: true });
+    input.click();
+  });
+}
+
 /* ---------------------------------------------------------------------
    TASKS
 --------------------------------------------------------------------- */
@@ -874,6 +1006,39 @@ let allTasks = [];
 let activeTaskSubtab = 'assignedToMe';
 let activeTaskFilter = 'all';
 let openTaskId = null; // task currently open in the detail modal
+let capturedPhotoDataUrl = null; // holds a captured live photo while the detail modal is open
+
+// Builds the evenly-spaced check-in schedule for a recurring task.
+// e.g. 12 hour window ÷ 6 times = a check-in every 2 hours, each with its own due window.
+function generateCheckpoints(startAtLocal, windowHours, timesPerWindow, graceMinutes){
+  const startMs = new Date(startAtLocal).getTime();
+  const intervalMs = (windowHours * 60 * 60 * 1000) / timesPerWindow;
+  const graceMs = graceMinutes * 60 * 1000;
+  const checkpoints = [];
+  for(let i = 0; i < timesPerWindow; i++){
+    const dueMs = startMs + i * intervalMs;
+    checkpoints.push({
+      index: i + 1,
+      dueAt: new Date(dueMs).toISOString(),
+      graceUntil: new Date(dueMs + graceMs).toISOString(),
+      status: 'pending', // pending | done
+      photo: '', note: '', completedAt: null
+    });
+  }
+  return checkpoints;
+}
+
+function formatDateTime(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+}
+
+function checkpointStatus(c){
+  if(c.status === 'done') return 'done';
+  const now = new Date().toISOString();
+  return now > c.graceUntil ? 'overdue' : 'pending';
+}
 
 // Who the current user is allowed to assign tasks to (their own visible team, minus themselves).
 function assignableUsers(){
@@ -923,6 +1088,12 @@ async function loadTasks(){
 }
 
 function taskStatus(t){
+  if(t.recurring){
+    if(!t.checkpoints || t.checkpoints.length === 0) return 'pending';
+    if(t.checkpoints.every(c => c.status === 'done')) return 'completed';
+    if(t.checkpoints.some(c => checkpointStatus(c) === 'overdue')) return 'overdue';
+    return 'pending';
+  }
   if(t.status === 'completed') return 'completed';
   if(t.dueDate && t.dueDate < new Date().toISOString().slice(0,10)) return 'overdue';
   return 'pending';
@@ -932,10 +1103,25 @@ function reqBadgesHtml(t, submission){
   const s = submission || {};
   const items = [];
   if(t.reqCheck) items.push({label:'✓ Check-off', met: !!s.checked});
-  if(t.reqPhoto) items.push({label:'📷 Photo', met: !!s.photoLink});
+  if(t.reqPhoto) items.push({label:'📷 Photo', met: !!(s.photoBase64 || s.photoLink)});
   if(t.reqVideo) items.push({label:'🎥 Video', met: !!s.videoLink});
   if(t.reqPdf) items.push({label:'📄 PDF', met: !!s.pdfBase64});
   return `<div class="req-badges">${items.map(i => `<span class="req-badge ${i.met ? 'met' : ''}">${i.label}</span>`).join('')}</div>`;
+}
+
+function checkpointSummaryHtml(t){
+  const cps = t.checkpoints || [];
+  const done = cps.filter(c => c.status === 'done').length;
+  const pct = cps.length ? Math.round((done / cps.length) * 100) : 0;
+  const next = cps.find(c => c.status !== 'done');
+  const overdueCount = cps.filter(c => checkpointStatus(c) === 'overdue').length;
+  return `
+    <div class="cp-progress-wrap"><div class="cp-progress-bar" style="width:${pct}%;"></div></div>
+    <div class="cp-summary">
+      <strong>${done}/${cps.length}</strong> check-ins done
+      ${overdueCount > 0 ? ` · <span style="color:var(--alert);font-weight:700;">${overdueCount} overdue</span>` : ''}
+      ${next ? ` · Next due: ${escapeHtml(formatDateTime(next.dueAt))}` : ''}
+    </div>`;
 }
 
 function renderTasks(){
@@ -955,16 +1141,19 @@ function renderTasks(){
     return `
       <div class="task-card status-${status}">
         <div class="tc-top">
-          <p class="tc-title">${escapeHtml(t.title)}</p>
+          <p class="tc-title">${escapeHtml(t.title)} ${t.recurring ? '<span style="font-size:11px;color:var(--caramel);">🔁 Recurring</span>' : ''}</p>
           <span class="status-pill status-${status}">${status}</span>
         </div>
         ${t.description ? `<div class="tc-desc">${escapeHtml(t.description)}</div>` : ''}
         <div class="tc-meta">
           <div><strong>${otherPartyLabel}:</strong> ${escapeHtml(nameFor(otherPartyId))}</div>
-          ${t.dueDate ? `<div><strong>Due:</strong> ${escapeHtml(t.dueDate)}</div>` : ''}
+          ${t.recurring
+            ? `<div><strong>Schedule:</strong> every ${escapeHtml(String((t.windowHours*60/t.timesPerWindow) >= 60 ? (t.windowHours/t.timesPerWindow).toFixed(1)+'h' : Math.round(t.windowHours*60/t.timesPerWindow)+'m'))}, ${t.timesPerWindow}× in ${t.windowHours}h (${t.graceMinutes} min due window)</div>`
+            : (t.dueDate ? `<div><strong>Due:</strong> ${escapeHtml(t.dueDate)}</div>` : '')}
         </div>
-        ${reqBadgesHtml(t, t.submission)}
+        ${t.recurring ? checkpointSummaryHtml(t) : reqBadgesHtml(t, t.submission)}
         <div class="tc-actions">
+          ${t.assignedBy === currentUser.id ? `<button type="button" class="btn-delete" onclick="deleteTaskGroup('${t.groupId || ''}', '${t.id}')">🗑 Delete</button>` : ''}
           <button type="button" class="btn-view" onclick="openTaskDetail('${t.id}')">${status === 'completed' ? 'View' : (activeTaskSubtab === 'assignedToMe' ? 'Open' : 'View Progress')}</button>
         </div>
       </div>`;
@@ -972,10 +1161,18 @@ function renderTasks(){
 }
 
 /* ---- Create Task modal ---- */
-function populateAssigneeDropdown(){
-  const sel = document.getElementById('tAssignee');
+function populateAssigneeChecklist(){
+  const wrap = document.getElementById('tAssigneeList');
   const options = assignableUsers();
-  sel.innerHTML = options.map(u => `<option value="${u.id}">${escapeHtml(u.name || u.username)} — ${ROLE_LABELS[u.role]}</option>`).join('');
+  if(options.length === 0){
+    wrap.innerHTML = '<div style="font-size:13px;color:var(--ink-soft);">No one to assign to.</div>';
+    return;
+  }
+  wrap.innerHTML = options.map(u => `
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13.5px;cursor:pointer;">
+      <input type="checkbox" class="tAssigneeCheck" value="${u.id}" style="width:16px;height:16px;accent-color:var(--caramel);">
+      ${escapeHtml(u.name || u.username)} — ${escapeHtml(ROLE_LABELS[u.role])}
+    </label>`).join('');
 }
 
 function openAddTask(){
@@ -986,7 +1183,19 @@ function openAddTask(){
   document.getElementById('tReqPhoto').checked = false;
   document.getElementById('tReqVideo').checked = false;
   document.getElementById('tReqPdf').checked = false;
-  populateAssigneeDropdown();
+  document.getElementById('tRecurring').checked = false;
+  document.getElementById('tRecurrenceType').value = 'daily';
+  document.getElementById('tWindowHours').value = '';
+  document.getElementById('tTimesPerWindow').value = '';
+  document.getElementById('tGraceMinutes').value = '30';
+  // default start time = now, rounded to the current minute, in the <input type="datetime-local"> format
+  const now = new Date();
+  now.setSeconds(0,0);
+  document.getElementById('tStartAt').value = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  toggleRecurringFields(false);
+  updateRecurrenceTypeUI();
+  updateRecurringPreview();
+  populateAssigneeChecklist();
   document.getElementById('taskModalOverlay').classList.add('show');
 }
 document.getElementById('openAddTaskBtn').addEventListener('click', openAddTask);
@@ -994,29 +1203,123 @@ document.getElementById('closeTaskModalBtn').addEventListener('click', ()=>{
   document.getElementById('taskModalOverlay').classList.remove('show');
 });
 
+function toggleRecurringFields(isRecurring){
+  document.getElementById('recurringFields').style.display = isRecurring ? '' : 'none';
+  document.getElementById('simpleReqFields').style.display = isRecurring ? 'none' : '';
+}
+document.getElementById('tRecurring').addEventListener('change', (e)=>{
+  toggleRecurringFields(e.target.checked);
+  updateRecurringPreview();
+});
+
+const RECURRENCE_TIMES_LABEL = { daily: 'How many times per day?', weekly: 'How many times per week?', monthly: 'How many times per month?', custom: 'How many check-ins in the window?' };
+
+function daysInMonthOf(dateStr){
+  const d = dateStr ? new Date(dateStr) : new Date();
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+}
+
+// Turns the chosen frequency (daily/weekly/monthly/custom) into a total window in hours,
+// which feeds straight into the existing generateCheckpoints(startAt, windowHours, ...) logic.
+function computeWindowHours(){
+  const type = document.getElementById('tRecurrenceType').value;
+  const startAt = document.getElementById('tStartAt').value;
+  if(type === 'daily') return 24;
+  if(type === 'weekly') return 24 * 7;
+  if(type === 'monthly') return 24 * daysInMonthOf(startAt);
+  return parseFloat(document.getElementById('tWindowHours').value) || 0;
+}
+
+function updateRecurrenceTypeUI(){
+  const type = document.getElementById('tRecurrenceType').value;
+  document.getElementById('customWindowField').style.display = type === 'custom' ? '' : 'none';
+  document.getElementById('tTimesLabel').textContent = RECURRENCE_TIMES_LABEL[type];
+}
+document.getElementById('tRecurrenceType').addEventListener('change', ()=>{
+  updateRecurrenceTypeUI();
+  updateRecurringPreview();
+});
+
+function updateRecurringPreview(){
+  const box = document.getElementById('recurringPreview');
+  const windowHours = computeWindowHours();
+  const timesPerWindow = parseInt(document.getElementById('tTimesPerWindow').value, 10);
+  const graceMinutes = parseFloat(document.getElementById('tGraceMinutes').value);
+  if(!windowHours || !timesPerWindow){
+    box.textContent = 'Fill in the count above to see the schedule.';
+    return;
+  }
+  const intervalMin = (windowHours * 60) / timesPerWindow;
+  const intervalTxt = intervalMin >= 60 ? `${(intervalMin/60).toFixed(1)} hour(s)` : `${Math.round(intervalMin)} min`;
+  box.textContent = `= 1 photo every ${intervalTxt}, each due within ${graceMinutes || 30} minutes of its scheduled time.`;
+}
+['tWindowHours','tTimesPerWindow','tGraceMinutes','tStartAt'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updateRecurringPreview);
+});
+
 document.getElementById('saveTaskBtn').addEventListener('click', async ()=>{
   const title = document.getElementById('tTitle').value.trim();
   const description = document.getElementById('tDesc').value.trim();
-  const assignedTo = document.getElementById('tAssignee').value;
+  const assigneeIds = Array.from(document.querySelectorAll('.tAssigneeCheck:checked')).map(cb => cb.value);
   const dueDate = document.getElementById('tDueDate').value;
+  const recurring = document.getElementById('tRecurring').checked;
+
+  if(!title){ showToast('Please enter a task title.', true); return; }
+  if(assigneeIds.length === 0){ showToast('Please select at least one person to assign this to.', true); return; }
+
+  const btn = document.getElementById('saveTaskBtn');
+  const groupId = 'grp_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+
+  if(recurring){
+    const windowHours = computeWindowHours();
+    const timesPerWindow = parseInt(document.getElementById('tTimesPerWindow').value, 10);
+    const graceMinutes = parseFloat(document.getElementById('tGraceMinutes').value);
+    const startAt = document.getElementById('tStartAt').value;
+    if(!windowHours || !timesPerWindow || !graceMinutes || !startAt){
+      showToast('Please fill in the full repeat schedule.', true); return;
+    }
+    if(timesPerWindow < 1){ showToast('Check-ins must be at least 1.', true); return; }
+
+    btn.disabled = true; btn.textContent = 'Assigning...';
+    try{
+      await Promise.all(assigneeIds.map(assignedTo => {
+        const checkpoints = generateCheckpoints(startAt, windowHours, timesPerWindow, graceMinutes);
+        return addDoc(collection(db, CONFIG.TASKS_COLLECTION), {
+          groupId, title, description, assignedTo, assignedBy: currentUser.id,
+          dueDate: '', recurring: true, windowHours, timesPerWindow, graceMinutes,
+          startAt: new Date(startAt).toISOString(), checkpoints,
+          reqCheck:false, reqPhoto:false, reqVideo:false, reqPdf:false,
+          status: 'pending', submission: null, createdAt: serverTimestamp()
+        });
+      }));
+      showToast(`Recurring task assigned to ${assigneeIds.length} ${assigneeIds.length===1?'person':'people'}!`);
+      document.getElementById('taskModalOverlay').classList.remove('show');
+      loadTasks();
+    } catch(err){
+      console.error(err);
+      showToast('Could not assign task — check connection.', true);
+    } finally{
+      btn.disabled = false; btn.textContent = 'Assign Task';
+    }
+    return;
+  }
+
   const reqCheck = document.getElementById('tReqCheck').checked;
   const reqPhoto = document.getElementById('tReqPhoto').checked;
   const reqVideo = document.getElementById('tReqVideo').checked;
   const reqPdf = document.getElementById('tReqPdf').checked;
-
-  if(!title){ showToast('Please enter a task title.', true); return; }
-  if(!assignedTo){ showToast('Please choose who to assign this to.', true); return; }
   if(!reqCheck && !reqPhoto && !reqVideo && !reqPdf){ showToast('Pick at least one completion requirement.', true); return; }
 
-  const btn = document.getElementById('saveTaskBtn');
   btn.disabled = true; btn.textContent = 'Assigning...';
   try{
-    await addDoc(collection(db, CONFIG.TASKS_COLLECTION), {
-      title, description, assignedTo, assignedBy: currentUser.id,
-      dueDate: dueDate || '', reqCheck, reqPhoto, reqVideo, reqPdf,
-      status: 'pending', submission: null, createdAt: serverTimestamp()
-    });
-    showToast('Task assigned!');
+    await Promise.all(assigneeIds.map(assignedTo =>
+      addDoc(collection(db, CONFIG.TASKS_COLLECTION), {
+        groupId, title, description, assignedTo, assignedBy: currentUser.id,
+        dueDate: dueDate || '', recurring: false, reqCheck, reqPhoto, reqVideo, reqPdf,
+        status: 'pending', submission: null, createdAt: serverTimestamp()
+      })
+    ));
+    showToast(`Task assigned to ${assigneeIds.length} ${assigneeIds.length===1?'person':'people'}!`);
     document.getElementById('taskModalOverlay').classList.remove('show');
     loadTasks();
   } catch(err){
@@ -1027,11 +1330,32 @@ document.getElementById('saveTaskBtn').addEventListener('click', async ()=>{
   }
 });
 
+// Deletes a task for everyone it was assigned to (all docs sharing the same groupId),
+// or just the single doc for legacy tasks created before groupId existed.
+window.deleteTaskGroup = async function(groupId, singleId){
+  const ok = confirm('Delete this task permanently? This removes it for everyone it was assigned to.');
+  if(!ok) return;
+  try{
+    if(groupId){
+      const toDelete = allTasks.filter(t => t.groupId === groupId);
+      await Promise.all(toDelete.map(t => deleteDoc(doc(db, CONFIG.TASKS_COLLECTION, t.id))));
+    } else {
+      await deleteDoc(doc(db, CONFIG.TASKS_COLLECTION, singleId));
+    }
+    showToast('Task deleted.');
+    loadTasks();
+  } catch(err){
+    console.error(err);
+    showToast('Delete failed — check connection.', true);
+  }
+};
+
 /* ---- Task detail / submission modal ---- */
 window.openTaskDetail = function(taskId){
   const t = allTasks.find(x => x.id === taskId);
   if(!t) return;
   openTaskId = taskId;
+  capturedPhotoDataUrl = null;
   const isAssignee = t.assignedTo === currentUser.id;
   const status = taskStatus(t);
   document.getElementById('taskDetailTitle').textContent = t.title;
@@ -1043,15 +1367,40 @@ window.openTaskDetail = function(taskId){
   html += `<div class="tc-meta">
     <div><strong>Assigned By:</strong> ${escapeHtml(nameFor(t.assignedBy))}</div>
     <div><strong>Assigned To:</strong> ${escapeHtml(nameFor(t.assignedTo))}</div>
-    ${t.dueDate ? `<div><strong>Due:</strong> ${escapeHtml(t.dueDate)}</div>` : ''}
+    ${!t.recurring && t.dueDate ? `<div><strong>Due:</strong> ${escapeHtml(t.dueDate)}</div>` : ''}
   </div>`;
+
+  if(t.recurring){
+    // ===== RECURRING TASK: list of scheduled check-ins =====
+    html += checkpointSummaryHtml(t);
+    html += `<div class="cp-list">` + t.checkpoints.map(c => {
+      const cs = checkpointStatus(c);
+      const canCapture = isAssignee && c.status !== 'done';
+      return `
+        <div class="cp-row ${cs === 'done' ? 'done' : (cs === 'overdue' ? 'overdue' : '')}">
+          <div class="cp-row-top">
+            <span class="cp-row-title">Check-in ${c.index}</span>
+            <span class="status-pill status-${cs === 'done' ? 'completed' : (cs === 'overdue' ? 'overdue' : 'pending')}">${cs === 'done' ? 'done' : cs}</span>
+          </div>
+          <div class="cp-row-time">Due ${escapeHtml(formatDateTime(c.dueAt))} · by ${escapeHtml(formatDateTime(c.graceUntil))}</div>
+          ${c.photo ? `<img class="cp-row-photo" src="${c.photo}" alt="check-in photo">` : ''}
+          ${c.note ? `<div style="font-size:12.5px;color:var(--ink-soft);margin-top:6px;">📝 ${escapeHtml(c.note)}</div>` : ''}
+          ${canCapture ? `<button type="button" class="cp-take-btn" onclick="captureCheckpointPhoto('${t.id}', ${c.index})">📷 Take Live Photo</button>` : ''}
+        </div>`;
+    }).join('') + `</div>`;
+    foot.style.display = 'none';
+    body.innerHTML = html;
+    document.getElementById('taskDetailModalOverlay').classList.add('show');
+    return;
+  }
+
   html += reqBadgesHtml(t, t.submission);
 
   if(t.status === 'completed' && t.submission){
     const s = t.submission;
     html += `<div class="submission-box">
       ${t.reqCheck ? `<div>✓ Marked done by staff</div>` : ''}
-      ${t.reqPhoto && s.photoLink ? `<div>📷 Photo: <a href="${escapeHtml(s.photoLink)}" target="_blank" rel="noopener">${escapeHtml(s.photoLink)}</a><br><img src="${escapeHtml(s.photoLink)}" alt="proof photo" onerror="this.style.display='none'"></div>` : ''}
+      ${t.reqPhoto && (s.photoBase64 || s.photoLink) ? `<div>📷 Photo:<img src="${escapeHtml(s.photoBase64 || s.photoLink)}" alt="proof photo" onerror="this.style.display='none'"></div>` : ''}
       ${t.reqVideo && s.videoLink ? `<div>🎥 Video link: <a href="${escapeHtml(s.videoLink)}" target="_blank" rel="noopener">${escapeHtml(s.videoLink)}</a></div>` : ''}
       ${t.reqPdf && s.pdfBase64 ? `<div>📄 PDF: <a href="${s.pdfBase64}" download="${escapeHtml(s.pdfName || 'attachment.pdf')}">Download attachment</a></div>` : ''}
       ${s.note ? `<div style="margin-top:6px;">📝 ${escapeHtml(s.note)}</div>` : ''}
@@ -1060,7 +1409,11 @@ window.openTaskDetail = function(taskId){
 
   if(isAssignee && status !== 'completed'){
     html += `<div id="submissionForm">`;
-    if(t.reqPhoto) html += `<label>📷 Photo Link</label><input type="url" id="subPhoto" placeholder="https://..."><div class="modal-hint">Upload the photo to Google Photos / Drive / WhatsApp etc., then paste the shareable link here (keeps full quality).</div>`;
+    if(t.reqPhoto) html += `
+      <label>📷 Live Photo</label>
+      <div class="photo-capture-box" id="photoCaptureBox">
+        <button type="button" class="capture-btn" id="takePhotoBtn">📷 Take Photo</button>
+      </div>`;
     if(t.reqVideo) html += `<label>🎥 Video Link</label><input type="url" id="subVideo" placeholder="https://...">`;
     if(t.reqPdf) html += `<label>📄 PDF Attachment</label><input type="file" accept="application/pdf" id="subPdf"><div class="modal-hint">Keep it under ~700KB (it's stored directly in the database).</div>`;
     if(t.reqCheck) html += `<label class="req-check-row"><input type="checkbox" id="subCheck"> I've completed this task</label>`;
@@ -1073,11 +1426,60 @@ window.openTaskDetail = function(taskId){
 
   body.innerHTML = html;
   document.getElementById('taskDetailModalOverlay').classList.add('show');
+
+  // Wire up the live-photo capture button (only exists when reqPhoto is on).
+  function attachTakePhotoHandler(){
+    const btn = document.getElementById('takePhotoBtn');
+    if(!btn) return;
+    btn.addEventListener('click', async ()=>{
+      try{
+        btn.textContent = 'Opening camera...';
+        const dataUrl = await pickLivePhoto();
+        capturedPhotoDataUrl = dataUrl;
+        document.getElementById('photoCaptureBox').innerHTML = `
+          <img src="${dataUrl}" alt="captured photo">
+          <button type="button" class="capture-btn retake" id="retakePhotoBtn">Retake Photo</button>`;
+        document.getElementById('retakePhotoBtn').addEventListener('click', ()=>{
+          capturedPhotoDataUrl = null;
+          document.getElementById('photoCaptureBox').innerHTML = `<button type="button" class="capture-btn" id="takePhotoBtn">📷 Take Photo</button>`;
+          attachTakePhotoHandler();
+        });
+      } catch(err){
+        console.error(err);
+        if(err && err.message === 'No photo captured'){ btn.textContent = '📷 Take Photo'; return; }
+        btn.textContent = '📷 Take Photo';
+        showToast('Could not capture photo — try again.', true);
+      }
+    }, { once:true });
+  }
+  attachTakePhotoHandler();
+};
+
+// Captures and immediately saves a single check-in photo for a recurring task.
+window.captureCheckpointPhoto = async function(taskId, checkpointIndex){
+  try{
+    const dataUrl = await pickLivePhoto();
+    const t = allTasks.find(x => x.id === taskId);
+    if(!t) return;
+    const updatedCheckpoints = t.checkpoints.map(c =>
+      c.index === checkpointIndex ? { ...c, status: 'done', photo: dataUrl, completedAt: new Date().toISOString() } : c
+    );
+    await updateDoc(doc(db, CONFIG.TASKS_COLLECTION, taskId), { checkpoints: updatedCheckpoints });
+    showToast(`Check-in ${checkpointIndex} saved!`);
+    t.checkpoints = updatedCheckpoints; // keep local cache in sync
+    openTaskDetail(taskId); // re-render the modal with the updated checkpoint
+    loadTasks();
+  } catch(err){
+    console.error(err);
+    if(err && err.message === 'No photo captured') return; // user cancelled — no error toast needed
+    showToast('Could not save photo — check connection.', true);
+  }
 };
 
 document.getElementById('closeTaskDetailModalBtn').addEventListener('click', ()=>{
   document.getElementById('taskDetailModalOverlay').classList.remove('show');
   openTaskId = null;
+  capturedPhotoDataUrl = null;
 });
 
 document.getElementById('submitTaskBtn').addEventListener('click', async ()=>{
@@ -1090,8 +1492,7 @@ document.getElementById('submitTaskBtn').addEventListener('click', async ()=>{
   const videoLink = t.reqVideo ? document.getElementById('subVideo').value.trim() : '';
   if(t.reqVideo && !videoLink){ showToast('Please paste the video link.', true); return; }
 
-  const photoLink = t.reqPhoto ? document.getElementById('subPhoto').value.trim() : '';
-  if(t.reqPhoto && !photoLink){ showToast('Please paste the photo link.', true); return; }
+  if(t.reqPhoto && !capturedPhotoDataUrl){ showToast('Please take a live photo first.', true); return; }
 
   const pdfFile = t.reqPdf ? document.getElementById('subPdf').files[0] : null;
   if(t.reqPdf && !pdfFile){ showToast('Please attach the required PDF.', true); return; }
@@ -1104,7 +1505,7 @@ document.getElementById('submitTaskBtn').addEventListener('click', async ()=>{
   const progress = document.getElementById('subProgress');
   btn.disabled = true; btn.textContent = 'Submitting...';
   try{
-    const submission = { checked: t.reqCheck ? true : false, videoLink, photoLink, completedAt: new Date().toISOString() };
+    const submission = { checked: t.reqCheck ? true : false, videoLink, photoBase64: capturedPhotoDataUrl || '', completedAt: new Date().toISOString() };
 
     if(pdfFile){
       progress.style.display = 'block'; progress.textContent = 'Attaching PDF…';
@@ -1116,15 +1517,151 @@ document.getElementById('submitTaskBtn').addEventListener('click', async ()=>{
     showToast('Task marked complete!');
     document.getElementById('taskDetailModalOverlay').classList.remove('show');
     openTaskId = null;
+    capturedPhotoDataUrl = null;
     loadTasks();
   } catch(err){
     console.error(err);
-    showToast('Submit failed — check connection, or the file may be too large.', true);
+    showToast('Submit failed — check connection, or the photo/file may be too large.', true);
   } finally{
     btn.disabled = false; btn.textContent = 'Mark Complete';
     progress.style.display = 'none';
   }
 });
+
+/* ---------------------------------------------------------------------
+   PERFORMANCE (charts on a user's profile — on-time vs late vs missed,
+   filterable by week / month / last 30 days / custom range)
+--------------------------------------------------------------------- */
+let perfChartDoughnut = null;
+let perfChartBar = null;
+let perfUserId = null;
+let perfRange = 'week';
+
+window.openPerformance = function(userId){
+  perfUserId = userId;
+  perfRange = 'week';
+  document.querySelectorAll('#perfFilters .task-filter').forEach(f => f.classList.toggle('active', f.dataset.range === 'week'));
+  document.getElementById('perfCustomRange').style.display = 'none';
+  document.getElementById('perfModalTitle').textContent = `Performance — ${nameFor(userId)}`;
+  document.getElementById('perfModalOverlay').classList.add('show');
+  renderPerformance();
+};
+document.getElementById('viewMyPerfBtn').addEventListener('click', ()=> window.openPerformance(currentUser.id));
+document.getElementById('closePerfModalBtn').addEventListener('click', ()=>{
+  document.getElementById('perfModalOverlay').classList.remove('show');
+});
+document.querySelectorAll('#perfFilters .task-filter').forEach(f=>{
+  f.addEventListener('click', ()=>{
+    document.querySelectorAll('#perfFilters .task-filter').forEach(t=>t.classList.remove('active'));
+    f.classList.add('active');
+    perfRange = f.dataset.range;
+    document.getElementById('perfCustomRange').style.display = perfRange === 'custom' ? '' : 'none';
+    if(perfRange !== 'custom') renderPerformance();
+  });
+});
+document.getElementById('perfApplyBtn').addEventListener('click', renderPerformance);
+
+function getPerfDateRange(){
+  const today = new Date(); today.setHours(23,59,59,999);
+  let start;
+  if(perfRange === 'week'){ start = new Date(today); start.setDate(start.getDate()-6); start.setHours(0,0,0,0); return [start, today]; }
+  if(perfRange === 'month'){ start = new Date(today.getFullYear(), today.getMonth(), 1); start.setHours(0,0,0,0); return [start, today]; }
+  if(perfRange === '30d'){ start = new Date(today); start.setDate(start.getDate()-29); start.setHours(0,0,0,0); return [start, today]; }
+  // custom
+  const fromVal = document.getElementById('perfFrom').value;
+  const toVal = document.getElementById('perfTo').value;
+  const s = fromVal ? new Date(fromVal+'T00:00:00') : (()=>{ const d=new Date(today); d.setDate(d.getDate()-6); d.setHours(0,0,0,0); return d; })();
+  const e = toVal ? new Date(toVal+'T23:59:59') : today;
+  return [s, e];
+}
+
+// Turns every task/checkpoint assigned to a user into a flat list of dated events,
+// each classified as onTime / late / missed / pending, within the given date range.
+function getPerformanceEvents(userId, start, end){
+  const events = [];
+  const now = new Date();
+  allTasks.filter(t => t.assignedTo === userId).forEach(t=>{
+    if(t.recurring){
+      (t.checkpoints || []).forEach(c=>{
+        const due = new Date(c.dueAt);
+        if(due < start || due > end) return;
+        if(c.status === 'done'){
+          const completed = new Date(c.completedAt);
+          events.push({ date: due, status: completed <= new Date(c.graceUntil) ? 'onTime' : 'late' });
+        } else {
+          events.push({ date: due, status: new Date(c.graceUntil) < now ? 'missed' : 'pending' });
+        }
+      });
+    } else {
+      let refDateStr = t.dueDate;
+      if(!refDateStr && t.createdAt && typeof t.createdAt.toDate === 'function'){
+        refDateStr = t.createdAt.toDate().toISOString().slice(0,10);
+      }
+      if(!refDateStr) return;
+      const due = new Date(refDateStr + 'T23:59:59');
+      if(due < start || due > end) return;
+      if(t.status === 'completed' && t.submission){
+        const completed = new Date(t.submission.completedAt);
+        const onTime = !t.dueDate || completed <= due;
+        events.push({ date: due, status: onTime ? 'onTime' : 'late' });
+      } else {
+        events.push({ date: due, status: due < now ? 'missed' : 'pending' });
+      }
+    }
+  });
+  return events;
+}
+
+function renderPerformance(){
+  const [start, end] = getPerfDateRange();
+  const events = getPerformanceEvents(perfUserId, start, end);
+  const counts = { onTime:0, late:0, missed:0, pending:0 };
+  events.forEach(e => counts[e.status]++);
+  const total = events.length;
+  const onTimePct = total ? Math.round((counts.onTime/total)*100) : 0;
+
+  document.getElementById('perfSummary').innerHTML = total
+    ? `<strong>${counts.onTime}/${total}</strong> done on time (${onTimePct}%) · ${counts.late} late · ${counts.missed} missed · ${counts.pending} pending`
+    : 'No tasks in this date range.';
+
+  const dctx = document.getElementById('perfDoughnut').getContext('2d');
+  if(perfChartDoughnut) perfChartDoughnut.destroy();
+  perfChartDoughnut = new Chart(dctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['On Time','Late','Missed','Pending'],
+      datasets: [{ data: [counts.onTime, counts.late, counts.missed, counts.pending],
+        backgroundColor: ['#3D6B4F','#B5793A','#8A3324','#E3D3BB'] }]
+    },
+    options: { plugins: { legend: { position: 'bottom', labels:{ font:{ family:'Georgia' } } } } }
+  });
+
+  const byDay = {};
+  events.forEach(e=>{
+    const key = e.date.toISOString().slice(0,10);
+    if(!byDay[key]) byDay[key] = { onTime:0, late:0, missed:0 };
+    if(e.status !== 'pending') byDay[key][e.status]++;
+  });
+  const days = Object.keys(byDay).sort();
+  const bctx = document.getElementById('perfBar').getContext('2d');
+  if(perfChartBar) perfChartBar.destroy();
+  perfChartBar = new Chart(bctx, {
+    type: 'bar',
+    data: {
+      labels: days.map(d => new Date(d+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})),
+      datasets: [
+        { label:'On Time', data: days.map(d=>byDay[d].onTime), backgroundColor:'#3D6B4F' },
+        { label:'Late', data: days.map(d=>byDay[d].late), backgroundColor:'#B5793A' },
+        { label:'Missed', data: days.map(d=>byDay[d].missed), backgroundColor:'#8A3324' }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { x: { stacked:true }, y: { stacked:true, beginAtZero:true, ticks:{ stepSize:1 } } },
+      plugins: { legend: { position:'bottom', labels:{ font:{ family:'Georgia' } } } }
+    }
+  });
+}
 
 /* ---------------------------------------------------------------------
    MY PROFILE
