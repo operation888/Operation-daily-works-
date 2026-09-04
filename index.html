@@ -57,6 +57,9 @@
   .session-bar{display:flex;align-items:center;justify-content:space-between;background:var(--coffee-deep);color:var(--cream-2);padding:9px 16px;font-size:12.5px;flex-wrap:wrap;gap:8px;}
   .session-bar button{background:transparent;border:1px solid var(--cream-2);color:var(--cream-2);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:Georgia,serif;}
   .session-bar button:hover{background:var(--cream-2);color:var(--coffee-deep);}
+  #refreshBtn{padding:5px 10px;font-size:14px;line-height:1;}
+  #refreshBtn.spinning{animation:spin 0.8s linear infinite;}
+  @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
   .role-chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
 
   /* ===== NAV ===== */
@@ -234,7 +237,10 @@
 <div id="app">
   <div class="session-bar">
     <span>Logged in as: <strong id="sessionName">—</strong> <span class="role-chip" id="sessionRoleChip"></span></span>
-    <button type="button" id="logoutBtn">Log Out</button>
+    <div style="display:flex;gap:8px;">
+      <button type="button" id="refreshBtn" title="Refresh data">🔄</button>
+      <button type="button" id="logoutBtn">Log Out</button>
+    </div>
   </div>
 
   <div class="wrap">
@@ -644,6 +650,31 @@ function switchNav(which){
   document.getElementById('profileSection').style.display = which === 'profile' ? '' : 'none';
   if(which === 'tasks') renderTasks();
 }
+
+// Re-pulls team + task data from Firebase and re-renders the current screen,
+// WITHOUT touching currentUser or the auth overlays — so the person stays logged in
+// and stays on whatever page/modal they were looking at.
+async function refreshApp(){
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.classList.add('spinning');
+  try{
+    if(currentUser.role !== 'staff'){
+      renderRoleTabsForCurrentUser();
+      await loadTeam();
+    }
+    await loadTasks();
+    renderProfile();
+    showToast('Refreshed!');
+  } catch(err){
+    showToast('Refresh failed — check connection.', true);
+    console.error(err);
+  } finally{
+    btn.disabled = false;
+    btn.classList.remove('spinning');
+  }
+}
+document.getElementById('refreshBtn').addEventListener('click', refreshApp);
 
 /* ---------------------------------------------------------------------
    PERMISSIONS
